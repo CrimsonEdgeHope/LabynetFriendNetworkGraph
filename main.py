@@ -14,7 +14,7 @@ from pyvis.network import Network
 from config import setup_logger, load, get, get_proxies
 from util import request_headers, save_result, import_result
 
-delay = 3.5
+delay = 4
 
 _nodes: list[UUID] = []
 _uuid_to_ign: dict[str, str] = {}
@@ -130,6 +130,7 @@ def run(_uuid: UUID):
     global _uuid_to_ign
     global _import_json
     if not _import_json:
+        time.sleep(30)
         _build_edge(_uuid, None)
         _status, _res = _make_request(_uuid, "profile")
         _s = str(_uuid)
