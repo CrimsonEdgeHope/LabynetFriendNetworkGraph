@@ -1,5 +1,6 @@
 import json
 import logging
+import random
 from json import JSONDecodeError
 import traceback
 from typing import Literal
@@ -8,15 +9,10 @@ import requests
 import time
 from uuid import UUID
 
-from flask import Flask
-from markupsafe import Markup
-
-from pyecharts.charts import Graph
-from pyecharts.options import global_options as opts
-from pyecharts.globals import ThemeType
+from pyvis.network import Network
 
 from config import setup_logger, load, get, get_proxies
-from util import request_headers, save_result
+from util import request_headers, save_result, import_result
 
 delay = 3.5
 
@@ -26,6 +22,8 @@ _edges: list[tuple[UUID, UUID]] = []
 
 _request_counts = 0
 _last_req = -1  # timestamp
+
+_import_json = ""
 
 
 def _wait():
@@ -77,15 +75,27 @@ def _build_edge(current: UUID, previous: UUID = None):
         _build_edge(_next, current)
 
 
-def generate_graph_object() -> Graph:
-    graph = Graph({"theme": ThemeType.CHALK}).set_global_opts(title_opts=opts.TitleOpts(title="Laby.net"))
-    logging.debug(_uuid_to_ign)
-    graph.add(series_name="", nodes=[
-        {"name": _uuid_to_ign[str(i)], "symbol": "roundRect"} for i in _nodes
-    ], links=[
-        {"source": _uuid_to_ign[str(i[0])], "target": _uuid_to_ign[str(i[1])]} for i in _edges
-    ], is_draggable=True, is_focusnode=True, is_roam=True)
-    return graph
+def generate_graph_object():
+
+    nt = Network(filter_menu=True, select_menu=True, height="1800px", width="1800px")
+    _coord = len(_uuid_to_ign)
+
+    for i in _nodes:
+        _u = str(i)
+        _u = _uuid_to_ign[_u]
+        nt.add_node(n_id=_u, label=_u,
+                    x=random.Random().randint(0, _coord), y=random.Random().randint(0, _coord))
+
+    for i in _edges:
+        _u0 = str(i[0])
+        _u0 = _uuid_to_ign[_u0]
+        _u1 = str(i[1])
+        _u1 = _uuid_to_ign[_u1]
+        nt.add_edge(_u0, _u1)
+        nt.add_edge(_u1, _u0)
+
+    nt.toggle_physics(False)
+    nt.show("graph.html", local=True, notebook=False)
 
 
 def _make_request(_uuid: UUID, mode: Literal["friends", "profile"] = "friends") -> [int, list]:
@@ -115,27 +125,31 @@ def _make_request(_uuid: UUID, mode: Literal["friends", "profile"] = "friends") 
 
 
 def run(_uuid: UUID):
-    _build_edge(_uuid, None)
-    _status, _res = _make_request(_uuid, "profile")
-    _s = str(_uuid)
-    if _status == 200:
-        _uuid_to_ign[_s] = _res["username"]
+    global _nodes
+    global _edges
+    global _uuid_to_ign
+    global _import_json
+    if not _import_json:
+        _build_edge(_uuid, None)
+        _status, _res = _make_request(_uuid, "profile")
+        _s = str(_uuid)
+        if _status == 200:
+            _uuid_to_ign[_s] = _res["username"]
+        else:
+            _uuid_to_ign[_s] = _s
     else:
-        _uuid_to_ign[_s] = _s
+        _nodes, _edges, _uuid_to_ign = import_result(_import_json)
 
-    graph = generate_graph_object()
-    app = Flask(__name__, static_folder="templates")
-
-    @app.route("/")
-    def index():
-        return Markup(graph.render_embed())
-
-    app.run(host="127.0.0.1")
+    generate_graph_object()
 
 
 def init():
     setup_logger()
     load()
+    global _import_json
+    _import_json = get("import_result")
+    if _import_json is not None:
+        return None
     _start_spot = input("Give an UUID to start from: ")
     _uuid = UUID(_start_spot)
     return _uuid
@@ -145,4 +159,5 @@ if __name__ == "__main__":
     try:
         run(init())
     finally:
-        save_result(_nodes, _uuid_to_ign, _edges)
+        if not _import_json:
+            save_result(_nodes, _uuid_to_ign, _edges)
