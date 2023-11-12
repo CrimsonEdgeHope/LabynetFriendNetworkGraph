@@ -45,7 +45,8 @@ def _reset():
 
 
 def _build_edge(current: UUID, previous: UUID = None):
-    if _nodes.count(current) == 0:
+    _node_present = _nodes.count(current)
+    if _node_present == 0:
         _nodes.append(current)
 
     _has_prev = previous is not None
@@ -58,6 +59,9 @@ def _build_edge(current: UUID, previous: UUID = None):
             _o: tuple = (current, previous)
         if _edges.count(_o) == 0:
             _edges.append(_o)
+
+    if _node_present != 0:
+        return
 
     _status, _res = _make_request(current)
     if _status != 200:
@@ -78,19 +82,19 @@ def _build_edge(current: UUID, previous: UUID = None):
 def generate_graph_object():
 
     nt = Network(filter_menu=True, select_menu=True, height="1800px", width="1800px")
-    _coord = len(_uuid_to_ign)
+    _coord = len(_uuid_to_ign) * 3
 
     for i in _nodes:
         _u = str(i)
-        _u = _uuid_to_ign[_u]
+        _u = _uuid_to_ign.get(_u, _u)
         nt.add_node(n_id=_u, label=_u,
-                    x=random.Random().randint(0, _coord), y=random.Random().randint(0, _coord))
+                    x=random.Random().randint(0, _coord), y=random.Random().randint(0, _coord), size=6)
 
     for i in _edges:
         _u0 = str(i[0])
-        _u0 = _uuid_to_ign[_u0]
+        _u0 = _uuid_to_ign.get(_u0, _u0)
         _u1 = str(i[1])
-        _u1 = _uuid_to_ign[_u1]
+        _u1 = _uuid_to_ign.get(_u1, _u1)
         nt.add_edge(_u0, _u1)
         nt.add_edge(_u1, _u0)
 
@@ -159,6 +163,8 @@ def init():
 if __name__ == "__main__":
     try:
         run(init())
+    except:
+        generate_graph_object()
     finally:
         if not _import_json:
             save_result(_nodes, _uuid_to_ign, _edges)
