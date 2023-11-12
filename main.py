@@ -49,16 +49,19 @@ def _build_edge(current: UUID, previous: UUID = None):
     if _node_present == 0:
         _nodes.append(current)
 
-    _has_prev = previous is not None
-    if _has_prev:
-        _cs = str(current)
-        _pv = str(previous)
-        if _cs > _pv:
-            _o: tuple = (previous, current)
+    def _add_edge(source: UUID, to: UUID):
+        _src = str(source)
+        _to = str(to)
+        if _src > _to:
+            _o: tuple = (to, source)
         else:
-            _o: tuple = (current, previous)
+            _o: tuple = (source, to)
         if _edges.count(_o) == 0:
             _edges.append(_o)
+
+    _has_prev = previous is not None
+    if _has_prev:
+        _add_edge(current, previous)
 
     if _node_present != 0:
         return
@@ -69,6 +72,11 @@ def _build_edge(current: UUID, previous: UUID = None):
         if _status == 403:
             logging.error("Remote host returned 403 FORBIDDEN.")
         return
+
+    for _i in _res:
+        _next = _i["uuid"]
+        _obj = UUID(_next)
+        _add_edge(_obj, current)
 
     for _i in _res:
         _next = _i["uuid"]
@@ -163,8 +171,6 @@ def init():
 if __name__ == "__main__":
     try:
         run(init())
-    except:
-        generate_graph_object()
     finally:
         if not _import_json:
             save_result(_nodes, _uuid_to_ign, _edges)
