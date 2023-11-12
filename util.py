@@ -18,7 +18,7 @@ request_headers = {
 }
 
 
-def save_result(nodes: list[UUID], uuid_to_ign: dict[UUID, str], edges: list[tuple[UUID, UUID]]):
+def save_result(nodes: list[UUID], uuid_to_ign: dict[str, str], edges: list[tuple[UUID, UUID]]):
     r = {
         "metadata": {
             "created_at_unix": time.time(),
@@ -33,7 +33,7 @@ def save_result(nodes: list[UUID], uuid_to_ign: dict[UUID, str], edges: list[tup
     }
     _obj = r["data"]["uuid_to_ign"]
     for _k, _v in uuid_to_ign.items():
-        _obj[str(_k)] = _v
+        _obj[_k] = _v
 
     _filepath = os.path.join("result", "{}.json".format(time.strftime("%Y-%m-%d-%H-%M-%S")))
     _dirs = os.path.split(_filepath)[0]

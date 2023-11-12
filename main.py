@@ -7,15 +7,22 @@ from typing import Literal
 import requests
 import time
 from uuid import UUID
+
+from flask import Flask
+from markupsafe import Markup
+
+from pyecharts.charts import Graph
+from pyecharts.options import global_options as opts
+from pyecharts.globals import ThemeType
+
 from config import setup_logger, load, get, get_proxies
 from util import request_headers, save_result
 
 delay = 3.5
 
 _nodes: list[UUID] = []
-_uuid_to_ign: dict[UUID, str] = {}
+_uuid_to_ign: dict[str, str] = {}
 _edges: list[tuple[UUID, UUID]] = []
-
 
 _request_counts = 0
 _last_req = -1  # timestamp
@@ -66,8 +73,19 @@ def _build_edge(current: UUID, previous: UUID = None):
         _obj = UUID(_next)
         if _has_prev and str(_obj) == str(previous):
             continue
-        _uuid_to_ign[_obj] = _i["user_name"]
+        _uuid_to_ign[str(_obj)] = _i["user_name"]
         _build_edge(_next, current)
+
+
+def generate_graph_object() -> Graph:
+    graph = Graph({"theme": ThemeType.CHALK}).set_global_opts(title_opts=opts.TitleOpts(title="Laby.net"))
+    logging.debug(_uuid_to_ign)
+    graph.add(series_name="", nodes=[
+        {"name": _uuid_to_ign[str(i)], "symbol": "roundRect"} for i in _nodes
+    ], links=[
+        {"source": _uuid_to_ign[str(i[0])], "target": _uuid_to_ign[str(i[1])]} for i in _edges
+    ], is_draggable=True, is_focusnode=True, is_roam=True)
+    return graph
 
 
 def _make_request(_uuid: UUID, mode: Literal["friends", "profile"] = "friends") -> [int, list]:
@@ -99,10 +117,20 @@ def _make_request(_uuid: UUID, mode: Literal["friends", "profile"] = "friends") 
 def run(_uuid: UUID):
     _build_edge(_uuid, None)
     _status, _res = _make_request(_uuid, "profile")
+    _s = str(_uuid)
     if _status == 200:
-        _uuid_to_ign[_uuid] = _res["username"]
+        _uuid_to_ign[_s] = _res["username"]
     else:
-        _uuid_to_ign[_uuid] = str(_uuid)
+        _uuid_to_ign[_s] = _s
+
+    graph = generate_graph_object()
+    app = Flask(__name__, static_folder="templates")
+
+    @app.route("/")
+    def index():
+        return Markup(graph.render_embed())
+
+    app.run(host="127.0.0.1")
 
 
 def init():
