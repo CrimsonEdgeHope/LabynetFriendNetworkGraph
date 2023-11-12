@@ -1,57 +1,120 @@
 import json
 import logging
+from json import JSONDecodeError
+import traceback
+from typing import Literal
+
 import requests
 import time
 from uuid import UUID
-from config import setup_logger, load, get
-
-request_headers = {
-    "Host": "laby.net",
-    "user-agent": "curl/7.74.0",
-    "accept": "*/*"
-}
+from config import setup_logger, load, get, get_proxies
+from util import request_headers, save_result
 
 delay = 3.5
-maximum_requests = 2
 
-nodes: list[UUID] = []
-uuid_to_ign: dict[UUID, str] = {}
-edges: list[tuple[str, str]] = []
-
-
-def make_request(_uuid: str):
-    _r = []
-    request_counts = 0
-    _last_req = -1  # timestamp
-    while request_counts < maximum_requests:
-        while True:
-            if _last_req == -1:
-                break
-            _t = time.time()
-            if _t - _last_req >= delay:
-                break
-        req = requests.get("https://laby.net/api/v3/user/{}/friends".format(_uuid), proxies={
-            "http": get("http_proxy"),
-            "https": get("https_proxy")
-        }, headers=request_headers)
-        _status = req.status_code
-        logging.debug(_status)
-        logging.debug(req.headers)
-        res = req.text
-        logging.debug(res)
-        request_counts += 1
-        _last_req = time.time()
-        if _status != 200:
-            if _status == 403:
-                logging.error("Failed to get friend list from {} !!!".format(_uuid))
-                continue
-        _r.append(json.loads(res))
-    return _r
+_nodes: list[UUID] = []
+_uuid_to_ign: dict[UUID, str] = {}
+_edges: list[tuple[UUID, UUID]] = []
 
 
-if __name__ == "__main__":
+_request_counts = 0
+_last_req = -1  # timestamp
+
+
+def _wait():
+    global _request_counts
+    global _last_req
+    while True:
+        if _last_req == -1:
+            break
+        _t = time.time()
+        if _t - _last_req >= delay:
+            break
+
+
+def _reset():
+    global _request_counts
+    global _last_req
+    _request_counts += 1
+    _last_req = time.time()
+
+
+def _build_edge(current: UUID, previous: UUID = None):
+    if _nodes.count(current) == 0:
+        _nodes.append(current)
+
+    _has_prev = previous is not None
+    if _has_prev:
+        _cs = str(current)
+        _pv = str(previous)
+        if _cs > _pv:
+            _o: tuple = (previous, current)
+        else:
+            _o: tuple = (current, previous)
+        if _edges.count(_o) == 0:
+            _edges.append(_o)
+
+    _status, _res = _make_request(current)
+    if _status != 200:
+        logging.warning("Skipping fetching {} friend list because something did not go well.".format(current))
+        if _status == 403:
+            logging.error("Remote host returned 403 FORBIDDEN.")
+        return
+
+    for _i in _res:
+        _next = _i["uuid"]
+        _obj = UUID(_next)
+        if _has_prev and str(_obj) == str(previous):
+            continue
+        _uuid_to_ign[_obj] = _i["user_name"]
+        _build_edge(_next, current)
+
+
+def _make_request(_uuid: UUID, mode: Literal["friends", "profile"] = "friends") -> [int, list]:
+    if _request_counts >= get("maximum_requests") and mode == "friends":
+        logging.warning("Maximum requests reached. Abort.")
+        return 429, []
+    _wait()
+    _url = "https://{}/api/v3/user/{}/{}".format(request_headers["host"], _uuid, mode)
+    logging.debug(_url)
+    req = requests.get(_url, proxies=get_proxies(), headers=request_headers)
+    _status = req.status_code
+    logging.debug(_status)
+    logging.debug(req.headers)
+    res = req.text
+    logging.debug(res)
+    _reset()
+    if _status != 200:
+        return _status, []
+    try:
+        _r = json.loads(res)
+    except JSONDecodeError:
+        logging.error("There's some problem parsing response at {}: {}".format(_uuid, res))
+        traceback.print_exc()
+        _r = []
+    logging.debug(_r)
+    return _status, _r
+
+
+def run(_uuid: UUID):
+    _build_edge(_uuid, None)
+    _status, _res = _make_request(_uuid, "profile")
+    if _status == 200:
+        _uuid_to_ign[_uuid] = _res["username"]
+    else:
+        _uuid_to_ign[_uuid] = str(_uuid)
+
+
+def init():
     setup_logger()
     load()
     _start_spot = input("Give an UUID to start from: ")
-    _uuid = str(UUID(_start_spot))
-    print(make_request(_uuid))
+    _uuid = UUID(_start_spot)
+    return _uuid
+
+
+if __name__ == "__main__":
+    try:
+        run(init())
+    finally:
+        save_result(_nodes, _uuid_to_ign, _edges)

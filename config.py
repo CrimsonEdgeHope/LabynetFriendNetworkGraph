@@ -1,12 +1,13 @@
 import logging
 import os
 import json
-import re
 
 __all__ = [
     "setup_logger",
     "load",
-    "get"
+    "get",
+    "get_proxies",
+    "get_config"
 ]
 
 
@@ -18,7 +19,8 @@ _config: dict = {}
 # Default config object.
 _default: dict = {
     "http_proxy": "",
-    "https_proxy": ""
+    "https_proxy": "",
+    "maximum_requests": 1000,
 }
 
 _acceptable = str | int
@@ -56,14 +58,25 @@ def load():
 
 
 def get(key: str) -> _acceptable | None:
-    global _config
+    _c = get_config()
     try:
         _def = _default[key]
     except KeyError:
         _def = None
 
-    r = _config.get(key, _def)
+    r = _c.get(key, _def)
     if r is None:
         logging.warning(f"Key \"{key}\" does not exist.")
 
     return r
+
+
+def get_proxies() -> dict:
+    return {
+        "http": get("http_proxy"),
+        "https": get("https_proxy")
+    }
+
+
+def get_config():
+    return _config
