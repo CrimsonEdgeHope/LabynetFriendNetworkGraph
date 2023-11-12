@@ -20,7 +20,8 @@ _config: dict = {}
 _default: dict = {
     "http_proxy": "",
     "https_proxy": "",
-    "maximum_requests": 1000,
+    "maximum_requests": 100,
+    "import_result": ""
 }
 
 _acceptable = str | int

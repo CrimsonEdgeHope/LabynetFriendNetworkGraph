@@ -148,7 +148,7 @@ def init():
     load()
     global _import_json
     _import_json = get("import_result")
-    if _import_json is not None:
+    if _import_json:
         return None
     _start_spot = input("Give an UUID to start from: ")
     _uuid = UUID(_start_spot)
