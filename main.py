@@ -24,6 +24,7 @@ _request_counts = 0
 _last_req = -1  # timestamp
 
 _import_json = ""
+_start_spot: UUID = None
 
 
 def _wait():
@@ -181,12 +182,12 @@ def init():
     setup_logger()
     load()
     global _import_json
+    global _start_spot
     _import_json = get("import_result")
     if _import_json:
         return None
-    _start_spot = input("Give an UUID to start from: ")
-    _uuid = UUID(_start_spot)
-    return _uuid
+    _start_spot = UUID(input("Give an UUID to start from: "))
+    return _start_spot
 
 
 if __name__ == "__main__":
@@ -194,4 +195,4 @@ if __name__ == "__main__":
         run(init())
     finally:
         if not _import_json:
-            save_result(_nodes, _uuid_to_ign, _edges)
+            save_result(_start_spot, _nodes, _uuid_to_ign, _edges)
