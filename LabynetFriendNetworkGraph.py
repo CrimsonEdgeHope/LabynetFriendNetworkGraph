@@ -20,6 +20,10 @@ _nodes: list[UUID] = []
 _uuid_to_ign: dict[str, str] = {}
 _edges: list[tuple[UUID, UUID]] = []
 
+_leftovers: list[UUID] = []
+_forbid_out: list[UUID] = []
+_error_out: list[UUID] = []
+
 _request_counts = 0
 _last_req = -1  # timestamp
 
@@ -68,6 +72,7 @@ def build_edge(current: UUID, previous: UUID = None):
                         logging.error("Remote host returned 403 FORBIDDEN: 1. Blocked by Cloudflare. 2. {} hides "
                                       "friend list".format(str(current)))
                         _res_t = []
+                        _forbid_out.append(current)
                     if _status_t >= 500:
                         _attempts += 1
                         if _halt(_attempts, _retries):
@@ -81,6 +86,7 @@ def build_edge(current: UUID, previous: UUID = None):
                     break
 
         logging.error("Skipping fetching {} friend list because something did not go well".format(str(current)))
+        _error_out.append(current)
         return 500, []
 
     _status, _res = _fetch_res()
@@ -145,6 +151,7 @@ def make_request_to_laby(_uuid: UUID, mode: Literal["friends", "profile"] = "fri
     logging.info(_url)
     if _request_counts >= get("maximum_requests") and mode == "friends":
         logging.warning("Maximum requests reached. Abort.")
+        _leftovers.append(_uuid)
         return 429, []
     _wait()
     req = requests.get(_url, proxies=get_proxies(), headers=request_headers)
@@ -203,4 +210,5 @@ if __name__ == "__main__":
         run(init())
     finally:
         if not _import_json:
-            save_result(_start_spot, _nodes, _uuid_to_ign, _edges)
+            save_result(start_spot=_start_spot, nodes=_nodes, edges=_edges, uuid_to_ign=_uuid_to_ign,
+                        leftovers=_leftovers, forbid_out=_forbid_out, error_out=_error_out)
