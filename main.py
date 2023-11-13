@@ -66,12 +66,33 @@ def _build_edge(current: UUID, previous: UUID = None):
     if _node_present != 0:
         return
 
-    _status, _res = _make_request(current)
-    if _status != 200:
-        logging.warning("Skipping fetching {} friend list because something did not go well.".format(current))
-        if _status == 403:
-            logging.error("Remote host returned 403 FORBIDDEN.")
-        return
+    def _fetch_res():
+        _retries = 3
+        _attempts = 0
+        while True:
+            try:
+                _res_t = []
+                _status_t, _res_t = _make_request(current)
+                if _status_t != 200:
+                    if _status_t == 403:
+                        logging.error("Remote host returned 403 FORBIDDEN.")
+                        _res_t = []
+                    if _status_t >= 500:
+                        _attempts += 1
+                        if _attempts >= _retries:
+                            break
+                        time.sleep(90)
+                        continue
+                return _status_t, _res_t
+            except:
+                _attempts += 1
+                if _attempts >= _retries:
+                    break
+                time.sleep(90)
+        logging.error("Request failure.")
+        return 500, []
+
+    _status, _res = _fetch_res()
 
     for _i in _res:
         _next = _i["uuid"]
