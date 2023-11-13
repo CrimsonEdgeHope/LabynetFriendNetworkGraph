@@ -11,7 +11,7 @@ from uuid import UUID
 
 from pyvis.network import Network
 
-from config import setup_logger, load, get, get_proxies
+from config import setup_logger, load_config, get, get_proxies
 from util import request_headers, save_result, import_result
 
 delay = 4
@@ -27,25 +27,7 @@ _import_json = ""
 _start_spot: UUID = None
 
 
-def _wait():
-    global _request_counts
-    global _last_req
-    while True:
-        if _last_req == -1:
-            break
-        _t = time.time()
-        if _t - _last_req >= delay:
-            break
-
-
-def _reset():
-    global _request_counts
-    global _last_req
-    _request_counts += 1
-    _last_req = time.time()
-
-
-def _build_edge(current: UUID, previous: UUID = None):
+def build_edge(current: UUID, previous: UUID = None):
     _node_present = _nodes.count(current)
     if _node_present == 0:
         _nodes.append(current)
@@ -68,29 +50,37 @@ def _build_edge(current: UUID, previous: UUID = None):
         return
 
     def _fetch_res():
+
+        def _halt(_at, _re):
+            if _at >= _re:
+                return True
+            time.sleep(90)
+            return False
+
         _retries = 3
         _attempts = 0
         while True:
             try:
                 _res_t = []
-                _status_t, _res_t = _make_request(current)
+                _status_t, _res_t = make_request_to_laby(current)
                 if _status_t != 200:
                     if _status_t == 403:
-                        logging.error("Remote host returned 403 FORBIDDEN.")
+                        logging.error("Remote host returned 403 FORBIDDEN: 1. Blocked by Cloudflare. 2. {} hides "
+                                      "friend list".format(str(current)))
                         _res_t = []
                     if _status_t >= 500:
                         _attempts += 1
-                        if _attempts >= _retries:
+                        if _halt(_attempts, _retries):
                             break
-                        time.sleep(90)
                         continue
+
                 return _status_t, _res_t
             except:
                 _attempts += 1
-                if _attempts >= _retries:
+                if _halt(_attempts, _retries):
                     break
-                time.sleep(90)
-        logging.error("Request failure.")
+
+        logging.error("Skipping fetching {} friend list because something did not go well".format(str(current)))
         return 500, []
 
     _status, _res = _fetch_res()
@@ -106,7 +96,7 @@ def _build_edge(current: UUID, previous: UUID = None):
         if _has_prev and str(_obj) == str(previous):
             continue
         _uuid_to_ign[str(_obj)] = _i["user_name"]
-        _build_edge(_next, current)
+        build_edge(_next, current)
 
 
 def generate_graph_object():
@@ -132,13 +122,31 @@ def generate_graph_object():
     nt.show("graph.html", local=True, notebook=False)
 
 
-def _make_request(_uuid: UUID, mode: Literal["friends", "profile"] = "friends") -> [int, list]:
+def make_request_to_laby(_uuid: UUID, mode: Literal["friends", "profile"] = "friends") -> [int, list]:
+    def _wait():
+        global _request_counts
+        global _last_req
+        while True:
+            if _last_req == -1:
+                break
+            _t = time.time()
+            if _t - _last_req >= delay:
+                break
+
+    def _reset():
+        global _request_counts
+        global _last_req
+        _request_counts += 1
+        _last_req = time.time()
+
+    global _request_counts
+
+    _url = "https://{}/api/v3/user/{}/{}".format(request_headers["host"], _uuid, mode)
+    logging.info(_url)
     if _request_counts >= get("maximum_requests") and mode == "friends":
         logging.warning("Maximum requests reached. Abort.")
         return 429, []
     _wait()
-    _url = "https://{}/api/v3/user/{}/{}".format(request_headers["host"], _uuid, mode)
-    logging.debug(_url)
     req = requests.get(_url, proxies=get_proxies(), headers=request_headers)
     _status = req.status_code
     logging.debug(_status)
@@ -165,8 +173,8 @@ def run(_uuid: UUID):
     global _import_json
     if not _import_json:
         time.sleep(30)
-        _build_edge(_uuid, None)
-        _status, _res = _make_request(_uuid, "profile")
+        build_edge(_uuid, None)
+        _status, _res = make_request_to_laby(_uuid, "profile")
         _s = str(_uuid)
         if _status == 200:
             _uuid_to_ign[_s] = _res["username"]
@@ -180,7 +188,7 @@ def run(_uuid: UUID):
 
 def init():
     setup_logger()
-    load()
+    load_config()
     global _import_json
     global _start_spot
     _import_json = get("import_result")

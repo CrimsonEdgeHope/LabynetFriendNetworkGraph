@@ -4,7 +4,7 @@ import json
 
 __all__ = [
     "setup_logger",
-    "load",
+    "load_config",
     "get",
     "get_proxies",
     "get_config"
@@ -35,7 +35,7 @@ def setup_logger():
     logging.basicConfig(**logging_pam)
 
 
-def load():
+def load_config():
     global _config
 
     if not os.path.exists(_config_file_name):
