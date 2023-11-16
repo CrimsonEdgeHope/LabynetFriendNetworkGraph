@@ -1,10 +1,12 @@
 import json
 import logging
+import os.path
 import random
 from json import JSONDecodeError
 import traceback
 from typing import Literal
 
+import inquirer
 import requests
 import time
 from uuid import UUID
@@ -106,7 +108,6 @@ def build_edge(current: UUID, previous: UUID = None):
 
 
 def generate_graph_object():
-
     nt = Network(filter_menu=True, select_menu=True, height="1800px", width="1800px")
     _coord = len(_uuid_to_ign) * 3
 
@@ -177,8 +178,8 @@ def run(_uuid: UUID):
     global _nodes
     global _edges
     global _uuid_to_ign
-    global _import_json
-    if not _import_json:
+
+    if _uuid is not None:
         time.sleep(30)
         build_edge(_uuid, None)
         _status, _res = make_request_to_laby(_uuid, "profile")
@@ -196,19 +197,48 @@ def run(_uuid: UUID):
 def init():
     setup_logger()
     load_config()
-    global _import_json
-    global _start_spot
-    _import_json = get("import_result")
-    if _import_json:
+
+    _ques = [
+        inquirer.List("op", message="What to do",
+                      choices=[
+                          ("Start from an UUID", "1"),
+                          ("Import previous result", "2")
+                      ],
+                      default="2")
+    ]
+    _ans = inquirer.prompt(_ques)
+    if _ans["op"] == "2":
+        global _import_json
+        _ques = [
+            inquirer.Text("filename", message="Result file name",
+                          validate=lambda _prevans, _v: os.path.exists(os.path.join("result", _v)))
+        ]
+        _ans = inquirer.prompt(_ques)
+        _import_json = _ans["filename"]
         return None
-    _start_spot = UUID(input("Give an UUID to start from: "))
-    return _start_spot
+    else:
+        global _start_spot
+
+        def _validate(_v):
+            try:
+                UUID(_v)
+                return True
+            except:
+                return False
+
+        _ques = [
+            inquirer.Text("uuid", message="Give an UUID to start from",
+                          validate=lambda _prevans, _v: _validate(_v))
+        ]
+        _ans = inquirer.prompt(_ques)
+        _start_spot = UUID(_ans["uuid"])
+        return _start_spot
 
 
 if __name__ == "__main__":
     try:
         run(init())
     finally:
-        if not _import_json:
+        if not _import_json and _start_spot:
             save_result(start_spot=_start_spot, nodes=_nodes, edges=_edges, uuid_to_ign=_uuid_to_ign,
                         leftovers=_leftovers, forbid_out=_forbid_out, error_out=_error_out)

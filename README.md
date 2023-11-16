@@ -10,15 +10,21 @@ Run command:
 pip install -r requirements.txt
 ```
 
-Config:
+## Config
 
-example:
+| Key              | Description                                    |
+|------------------|------------------------------------------------|
+| http_proxy       | A http proxy                                   |
+| https_proxy      | A https proxy                                  |
+| maximum_requests | How many requests can be sent in total at most |
+
+
+Example:
 
 ```json
 {
-    "http_proxy": "socks5h://127.0.0.1:14880",
-    "https_proxy": "socks5h://127.0.0.1:14880",
-    "maximum_requests": 500,
-    "import_result": ""
+    "http_proxy": "socks5://127.0.0.1:1080",
+    "https_proxy": "socks5://127.0.0.1:1080",
+    "maximum_requests": 5
 }
 ```
