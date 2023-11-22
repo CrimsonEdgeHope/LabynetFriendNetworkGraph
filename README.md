@@ -1,5 +1,8 @@
 # LabynetFriendNetworkGraph
 
+This is just a simple script that helps you fetch and analyse a whole friendship relations of a community of people.
+After fetching data from `laby.net`, a visual graph will be generated.
+
 Prerequisites:
 
 - Python 3.10
@@ -8,6 +11,7 @@ Prerequisites:
 Run command:
 ```shell
 pip install -r requirements.txt
+python LabynetFriendNetworkGraph.py
 ```
 
 ## Config
@@ -28,3 +32,11 @@ Example:
     "maximum_requests": 5
 }
 ```
+
+## LICENSE
+
+Licensed under WTFPL, you just do what the fuck you want with this script. No any formation of guarantee will be given.
+
+## Reference
+
+- [Laby.net API documentation](https://laby.net/api/docs)
