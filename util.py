@@ -26,7 +26,7 @@ def save_result(start_spot: UUID,
         "metadata": {
             "created_at_unix": time.time(),
             "request_headers": request_headers,
-            "config": config.get_config(),
+            "config": config.get_config_object(),
             "input": str(start_spot)
         },
         "leftovers": [str(i) for i in leftovers],

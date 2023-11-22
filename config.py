@@ -7,7 +7,7 @@ __all__ = [
     "load_config",
     "get",
     "get_proxies",
-    "get_config"
+    "get_config_object"
 ]
 
 
@@ -21,7 +21,7 @@ _default: dict = {
     "http_proxy": "",
     "https_proxy": "",
     "maximum_requests": 100,
-    "import_result": ""
+    "export_html": "graph.html"
 }
 
 _acceptable = str | int
@@ -59,7 +59,7 @@ def load_config():
 
 
 def get(key: str) -> _acceptable | None:
-    _c = get_config()
+    _c = get_config_object()
     try:
         _def = _default[key]
     except KeyError:
@@ -79,5 +79,5 @@ def get_proxies() -> dict:
     }
 
 
-def get_config():
+def get_config_object():
     return _config

@@ -60,6 +60,7 @@ def build_edge(current: UUID, previous: UUID = None):
         def _halt(_at, _re):
             if _at >= _re:
                 return True
+            logging.warning("A previous request just failed! Waiting 90 seconds")
             time.sleep(90)
             return False
 
@@ -126,7 +127,7 @@ def generate_graph_object():
         nt.add_edge(_u1, _u0)
 
     nt.toggle_physics(False)
-    nt.show("graph.html", local=True, notebook=False)
+    nt.show(get("export_html"), local=True, notebook=False)
 
 
 def make_request_to_laby(_uuid: UUID, mode: Literal["friends", "profile"] = "friends") -> [int, list]:
@@ -174,12 +175,15 @@ def make_request_to_laby(_uuid: UUID, mode: Literal["friends", "profile"] = "fri
     return _status, _r
 
 
-def run(_uuid: UUID):
+def run():
     global _nodes
     global _edges
     global _uuid_to_ign
+    global _start_spot
+    _uuid = _start_spot
 
     if _uuid is not None:
+        logging.info("Waste 30 seconds in case 429")
         time.sleep(30)
         build_edge(_uuid, None)
         _status, _res = make_request_to_laby(_uuid, "profile")
@@ -197,6 +201,7 @@ def run(_uuid: UUID):
 def init():
     setup_logger()
     load_config()
+    global _start_spot
 
     _ques = [
         inquirer.List("op", message="What to do",
@@ -215,10 +220,8 @@ def init():
         ]
         _ans = inquirer.prompt(_ques)
         _import_json = _ans["filename"]
-        return None
+        _start_spot = None
     else:
-        global _start_spot
-
         def _validate(_v):
             try:
                 UUID(_v)
@@ -232,12 +235,12 @@ def init():
         ]
         _ans = inquirer.prompt(_ques)
         _start_spot = UUID(_ans["uuid"])
-        return _start_spot
 
 
 if __name__ == "__main__":
     try:
-        run(init())
+        init()
+        run()
     finally:
         if not _import_json and _start_spot:
             save_result(start_spot=_start_spot, nodes=_nodes, edges=_edges, uuid_to_ign=_uuid_to_ign,
