@@ -32,6 +32,8 @@ _last_req = -1  # timestamp
 _import_json = ""
 _start_spot: UUID = None
 
+_session = requests.Session()
+
 
 def build_edge(current: UUID, previous: UUID = None):
     _node_present = _nodes.count(current)
@@ -109,14 +111,14 @@ def build_edge(current: UUID, previous: UUID = None):
 
 
 def generate_graph_object():
-    nt = Network(filter_menu=True, select_menu=True, height="1800px", width="1800px")
-    _coord = len(_uuid_to_ign) * 3
+    nt = Network(filter_menu=True, select_menu=True, height="1080px", width="1920px")
+    _coord = len(_uuid_to_ign) * 5
 
     for i in _nodes:
         _u = str(i)
         _u = _uuid_to_ign.get(_u, _u)
         nt.add_node(n_id=_u, label=_u,
-                    x=random.Random().randint(0, _coord), y=random.Random().randint(0, _coord), size=6)
+                    x=random.Random().randint(0, _coord), y=random.Random().randint(0, _coord), size=10)
 
     for i in _edges:
         _u0 = str(i[0])
@@ -148,15 +150,16 @@ def make_request_to_laby(_uuid: UUID, mode: Literal["friends", "profile"] = "fri
         _last_req = time.time()
 
     global _request_counts
+    global _session
 
+    _wait()
     _url = "https://{}/api/v3/user/{}/{}".format(request_headers["host"], _uuid, mode)
     logging.info(_url)
     if _request_counts >= get("maximum_requests") and mode == "friends":
-        logging.warning("Maximum requests reached. Abort.")
+        logging.warning("Maximum request counts reached. Abort.")
         _leftovers.append(_uuid)
         return 429, []
-    _wait()
-    req = requests.get(_url, proxies=get_proxies(), headers=request_headers)
+    req = _session.get(_url, proxies=get_proxies(), headers=request_headers)
     _status = req.status_code
     logging.debug(_status)
     logging.debug(req.headers)

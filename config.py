@@ -21,6 +21,7 @@ _default: dict = {
     "http_proxy": "",
     "https_proxy": "",
     "maximum_requests": 100,
+    "debug": False,
     "export_html": "graph.html"
 }
 
@@ -29,7 +30,7 @@ _acceptable = str | int
 
 def setup_logger():
     logging_pam = {
-        "level": logging.DEBUG,
+        "level": logging.DEBUG if get("debug") else logging.INFO,
         "format": "%(asctime)s [%(levelname)s] [%(filename)s:%(lineno)d] %(message)s"
     }
     logging.basicConfig(**logging_pam)
