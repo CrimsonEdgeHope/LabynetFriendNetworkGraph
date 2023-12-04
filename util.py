@@ -14,7 +14,7 @@ import config
 
 request_headers = {
     "host": "laby.net",
-    "user-agent": "Mozilla/5.0 (compatible; LabynetFriendNetworkGraph/beta-0.1; +https://github.com/CrimsonEdgeHope)",
+    "user-agent": "Mozilla/5.0 (compatible; LabynetFriendNetworkGraph/beta-0.1.1; +https://github.com/CrimsonEdgeHope)",
     "accept": "*/*"
 }
 
