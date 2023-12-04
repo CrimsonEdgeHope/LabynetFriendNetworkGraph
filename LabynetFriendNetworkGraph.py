@@ -3,7 +3,6 @@ import crawler
 
 
 def init():
-    config.setup_logger()
     config.load_config()
 
 

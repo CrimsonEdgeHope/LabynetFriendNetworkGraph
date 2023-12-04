@@ -3,7 +3,6 @@ import os
 import json
 
 __all__ = [
-    "setup_logger",
     "load_config",
     "get",
     "set_item",
@@ -34,14 +33,6 @@ _default: dict = {
 _acceptable = str | int
 
 
-def setup_logger():
-    logging_pam = {
-        "level": logging.DEBUG if get("debug") else logging.INFO,
-        "format": "%(asctime)s [%(levelname)s] [%(filename)s:%(lineno)d] %(message)s"
-    }
-    logging.basicConfig(**logging_pam)
-
-
 def load_config():
     global _config
 
@@ -57,11 +48,15 @@ def load_config():
             if not isinstance(value, _acceptable):
                 raise ValueError(f"Value \"{value}\"'s type is not acceptable.")
             try:
-                if not isinstance(value, type(_default[key])):
+                if not isinstance(None, type(_default[key])) and not isinstance(value, type(_default[key])):
                     raise ValueError(f"Value \"{value}\"'s type is not acceptable for key \"{key}\"")
             except KeyError:
                 pass
-
+    logging_pam = {
+        "level": logging.DEBUG if get("debug") else logging.INFO,
+        "format": "%(asctime)s [%(levelname)s] [%(filename)s:%(lineno)d] %(message)s"
+    }
+    logging.basicConfig(**logging_pam)
     logging.debug(_config)
 
 
