@@ -19,15 +19,13 @@ request_headers = {
 }
 
 
-def save_result(start_spot: UUID,
-                nodes: list[UUID], uuid_to_ign: dict[str, str], edges: list[tuple[UUID, UUID]],
+def save_result(nodes: list[UUID], uuid_to_ign: dict[str, str], edges: list[tuple[UUID, UUID]],
                 leftovers: list[UUID], forbid_out: list[UUID], error_out: list[UUID]):
     r = {
         "metadata": {
             "created_at_unix": time.time(),
             "request_headers": request_headers,
-            "config": config.get_config_object(),
-            "input": str(start_spot)
+            "config": config.get_config_object()
         },
         "leftovers": [str(i) for i in leftovers],
         "errored": {

@@ -10,29 +10,30 @@ import requests
 import time
 from uuid import UUID
 from pyvis.network import Network
-from config import get, get_proxies
+from config import get, get_proxies, set_item
 from util import request_headers, save_result, import_result
 
 __all__ = [
-    "init",
     "run"
 ]
 
 
-def init():
-    _start_spot = None
-    _import_json = None
+def _init() -> str | int:
+    _start_spot = get("start_spot")
+    _import_json = get("import_json")
 
     # Prompts
-    _ans = inquirer.prompt(inquirer.List("op", message="What to do",
+    _ans = inquirer.prompt([inquirer.List("op", message="What to do",
                                          choices=[
                                              ("Start from an UUID", "1"),
                                              ("Import previous result", "2")
                                          ],
-                                         default="2"))
-    if _ans["op"] == "2":
+                                         default="2")])
+    _op = _ans["op"]
+    if _op == "2":
         _ans = inquirer.prompt([
             inquirer.Text("filename", message="Result file name",
+                          default=_import_json,
                           validate=lambda _prevans, _v: os.path.exists(os.path.join("result", _v)))
         ])
         _import_json = _ans["filename"]
@@ -43,15 +44,20 @@ def init():
                 UUID(_v)
                 return True
             except:
-                pass
+                return False
 
         _ans = inquirer.prompt([
             inquirer.Text("uuid", message="Give an UUID to start from",
+                          default=_start_spot,
                           validate=lambda _prevans, _v: _validate(_v))
         ])
         _start_spot = UUID(_ans["uuid"])
+        _import_json = None
 
-    return _start_spot, _import_json
+    set_item("start_spot", _start_spot)
+    set_item("import_json", _import_json)
+
+    return _op
 
 
 def _wait(gap: int, last_time: float | int = None):
@@ -216,7 +222,8 @@ def _make_request_to_laby(delay: int, session: requests.Session,
 
 
 def _run(nodes: list[UUID], edges: list[tuple[UUID, UUID]], uuid_to_ign: dict[str, str],
-         delay: int, leftovers: list[UUID], forbid_out: list[UUID], error_out: list[UUID], session: requests.Session,
+         delay: int = None, leftovers: list[UUID] = None, forbid_out: list[UUID] = None, error_out: list[UUID] = None,
+         session: requests.Session = None,
          start_spot: UUID = None, import_json: str = None):
     _uuid = start_spot
 
@@ -233,34 +240,36 @@ def _run(nodes: list[UUID], edges: list[tuple[UUID, UUID]], uuid_to_ign: dict[st
             uuid_to_ign[_s] = _res["username"]
         else:
             uuid_to_ign[_s] = _s
+    elif import_json is not None:
+        nodes, edges, uuid_to_ign = import_result(import_json)
     else:
-        _nodes, _edges, uuid_to_ign = import_result(import_json)
-        nodes = _nodes
-        edges = _edges
+        raise ValueError("There's nothing.")
 
     _generate_graph_html(nodes, edges, uuid_to_ign)
 
 
 def run():
-    _start_spot, _import_json = init()
+    _op = _init()
 
-    _delay = 4
+    _start_spot = get("start_spot")
+    _import_json = get("import_json")
 
     _nodes: list[UUID] = []
-    _uuid_to_ign: dict[str, str] = {}
     _edges: list[tuple[UUID, UUID]] = []
+    _uuid_to_ign: dict[str, str] = {}
 
-    _leftovers: list[UUID] = []
-    _forbid_out: list[UUID] = []
-    _error_out: list[UUID] = []
-
-    _session = requests.Session()
-
-    try:
-        _run(nodes=_nodes, edges=_edges, uuid_to_ign=_uuid_to_ign, delay=_delay,
-             leftovers=_leftovers, forbid_out=_forbid_out, error_out=_error_out, session=_session,
-             start_spot=_start_spot, import_json=_import_json)
-    finally:
-        if not _import_json and _start_spot:
-            save_result(start_spot=_start_spot, nodes=_nodes, edges=_edges, uuid_to_ign=_uuid_to_ign,
+    if _op == "2":
+        _run(nodes=_nodes, edges=_edges, uuid_to_ign=_uuid_to_ign, import_json=_import_json)
+    else:
+        _delay = 4
+        _leftovers: list[UUID] = []
+        _forbid_out: list[UUID] = []
+        _error_out: list[UUID] = []
+        _session = requests.Session()
+        try:
+            _run(nodes=_nodes, edges=_edges, uuid_to_ign=_uuid_to_ign,
+                 delay=_delay, leftovers=_leftovers, forbid_out=_forbid_out, error_out=_error_out, session=_session,
+                 start_spot=_start_spot)
+        finally:
+            save_result(nodes=_nodes, edges=_edges, uuid_to_ign=_uuid_to_ign,
                         leftovers=_leftovers, forbid_out=_forbid_out, error_out=_error_out)

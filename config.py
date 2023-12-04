@@ -6,6 +6,7 @@ __all__ = [
     "setup_logger",
     "load_config",
     "get",
+    "set_item",
     "get_proxies",
     "get_config_object"
 ]
@@ -22,7 +23,9 @@ _default: dict = {
     "https_proxy": "",
     "maximum_requests": 100,
     "debug": False,
-    "export_html": "graph.html"
+    "export_html": "graph.html",
+    "start_spot": None,
+    "import_json": None
 }
 
 _acceptable = str | int
@@ -71,6 +74,12 @@ def get(key: str) -> _acceptable | None:
         logging.warning(f"Key \"{key}\" does not exist.")
 
     return r
+
+
+def set_item(key: str, value: _acceptable | None):
+    logging.debug("{} {}".format(key, value))
+    _config[key] = value
+    logging.debug(_config)
 
 
 def get_proxies() -> dict:
