@@ -11,10 +11,6 @@ cat << EOF > config.json
 }
 EOF
 cat config.json
-if [ $? -ne 0 ]; then
-  echo "Where's config.json?"
-  exit 1
-fi
 
 python --version
 if [ $? -ne 0 ]; then

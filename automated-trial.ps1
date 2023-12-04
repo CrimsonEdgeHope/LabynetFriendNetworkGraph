@@ -1,15 +1,11 @@
-Remove-Item -Force:$true -Confirm:$false config.json
+Remove-Item -Force:$true -Confirm:$false -ErrorAction SilentlyContinue config.json
 Set-Content config.json '{
   "maximum_requests": 5,
   "automate": "1",
-  "start_spot": "4605642a-a8cb-4048-b24f-fafcce1993d2",
+  "start_spot": "f88a6873-452f-428e-b138-76f682a3cfb4",
   "debug": true
 }'
 Get-Content config.json
-if ($LASTEXITCODE -ne 0) {
-    Write-Output "Where's config.json?"
-    exit 1
-}
 
 python --version
 if ($LASTEXITCODE -ne 0) {
