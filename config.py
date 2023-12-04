@@ -24,6 +24,8 @@ _default: dict = {
     "maximum_requests": 100,
     "debug": False,
     "export_html": "graph.html",
+    "export_width": 1920,
+    "export_height": 1080,
     "start_spot": None,
     "import_json": None
 }

@@ -24,11 +24,11 @@ def _init() -> str | int:
 
     # Prompts
     _ans = inquirer.prompt([inquirer.List("op", message="What to do",
-                                         choices=[
-                                             ("Start from an UUID", "1"),
-                                             ("Import previous result", "2")
-                                         ],
-                                         default="2")])
+                                          choices=[
+                                              ("Start from an UUID", "1"),
+                                              ("Import previous result", "2")
+                                          ],
+                                          default="2")])
     _op = _ans["op"]
     if _op == "2":
         _ans = inquirer.prompt([
@@ -95,7 +95,8 @@ def _construct_graph_json(nodes: list[UUID], edges: list[tuple[UUID, UUID]], uui
         while True:
             try:
                 _res_t = []
-                _status_t, _res_t = _make_request_to_laby(delay=delay, session=session, uuid=current, leftovers=leftovers)
+                _status_t, _res_t = _make_request_to_laby(delay=delay, session=session, uuid=current,
+                                                          leftovers=leftovers)
                 if _status_t != 200:
                     if _status_t == 403:
                         logging.error("Remote host returned 403 FORBIDDEN: 1. Blocked by Cloudflare. 2. {} hides "
@@ -148,8 +149,13 @@ def _construct_graph_json(nodes: list[UUID], edges: list[tuple[UUID, UUID]], uui
 
 
 def _generate_graph_html(nodes: list[UUID], edges: list[tuple[UUID, UUID]], uuid_to_ign: dict[str, str]):
-    nt = Network(filter_menu=True, select_menu=True, height="1080px", width="1920px")
-    _coord = len(uuid_to_ign) * 5
+    nt = Network(filter_menu=True,
+                 select_menu=True,
+                 height="{}px".format(get("export_height")),
+                 width="{}px".format(get("export_width")),
+                 neighborhood_highlight=True,
+                 cdn_resources="remote")
+    _coord = len(uuid_to_ign) * 10
 
     for i in nodes:
         _u = str(i)
@@ -191,7 +197,6 @@ class _Requests:
 def _make_request_to_laby(delay: int, session: requests.Session,
                           uuid: UUID, leftovers: list[UUID] = None,
                           mode: Literal["friends", "profile"] = "friends") -> [int, list]:
-
     if _Requests.request_counts >= get("maximum_requests") and mode == "friends":
         logging.warning("Maximum request counts reached. Abort.")
         leftovers.append(uuid)
