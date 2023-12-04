@@ -27,7 +27,8 @@ _default: dict = {
     "export_width": 1920,
     "export_height": 1080,
     "start_spot": None,
-    "import_json": None
+    "import_json": None,
+    "automate": None
 }
 
 _acceptable = str | int

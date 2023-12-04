@@ -18,41 +18,68 @@ __all__ = [
 ]
 
 
+class _OpID:
+    START_FROM_UUID = "1"
+    IMPORT_RESULT = "2"
+
+    def __init__(self):
+        raise NotImplementedError()
+
+
 def _init() -> str | int:
     _start_spot = get("start_spot")
     _import_json = get("import_json")
 
-    # Prompts
-    _ans = inquirer.prompt([inquirer.List("op", message="What to do",
-                                          choices=[
-                                              ("Start from an UUID", "1"),
-                                              ("Import previous result", "2")
-                                          ],
-                                          default="2")])
-    _op = _ans["op"]
-    if _op == "2":
-        _ans = inquirer.prompt([
-            inquirer.Text("filename", message="Result file name",
-                          default=_import_json,
-                          validate=lambda _prevans, _v: os.path.exists(os.path.join("result", _v)))
-        ])
-        _import_json = _ans["filename"]
-        _start_spot = None
-    else:
-        def _validate(_v):
-            try:
-                UUID(_v)
-                return True
-            except:
-                return False
+    class AutomationErrorAtInit(Exception):
+        def __init__(self, msg):
+            super().__init__(msg)
 
-        _ans = inquirer.prompt([
-            inquirer.Text("uuid", message="Give an UUID to start from",
-                          default=_start_spot,
-                          validate=lambda _prevans, _v: _validate(_v))
-        ])
-        _start_spot = UUID(_ans["uuid"])
-        _import_json = None
+    def _validate_start_spot(_v):
+        try:
+            UUID(_v)
+            return True
+        except:
+            return False
+
+    def _validate_import_json(_v):
+        return os.path.exists(os.path.join("result", _v))
+
+    _automate = get("automate")
+    if _automate is not None:
+        if _automate == _OpID.START_FROM_UUID:
+            if not _validate_start_spot(_start_spot):
+                raise AutomationErrorAtInit("Invalid start_spot value.")
+        elif _automate == _OpID.IMPORT_RESULT:
+            if not _validate_import_json(_import_json):
+                raise AutomationErrorAtInit("Invalid import_json value.")
+        else:
+            raise AutomationErrorAtInit("Unknown config value: {}".format(_automate))
+        _op = _automate
+    else:
+        # Prompts
+        _ans = inquirer.prompt([inquirer.List("op", message="What to do",
+                                              choices=[
+                                                  ("Start from an UUID", _OpID.START_FROM_UUID),
+                                                  ("Import previous result", _OpID.IMPORT_RESULT)
+                                              ],
+                                              default=_OpID.IMPORT_RESULT)])
+        _op = _ans["op"]
+        if _op == "2":
+            _ans = inquirer.prompt([
+                inquirer.Text("filename", message="Result file name",
+                              default=_import_json,
+                              validate=lambda _prevans, _v: _validate_import_json(_v))
+            ])
+            _import_json = _ans["filename"]
+            _start_spot = None
+        else:
+            _ans = inquirer.prompt([
+                inquirer.Text("uuid", message="Give an UUID to start from",
+                              default=_start_spot,
+                              validate=lambda _prevans, _v: _validate_start_spot(_v))
+            ])
+            _start_spot = UUID(_ans["uuid"])
+            _import_json = None
 
     set_item("start_spot", _start_spot)
     set_item("import_json", _import_json)
@@ -263,7 +290,7 @@ def run():
     _edges: list[tuple[UUID, UUID]] = []
     _uuid_to_ign: dict[str, str] = {}
 
-    if _op == "2":
+    if _op == _OpID.IMPORT_RESULT:
         _run(nodes=_nodes, edges=_edges, uuid_to_ign=_uuid_to_ign, import_json=_import_json)
     else:
         _delay = 4
