@@ -1,8 +1,8 @@
 Remove-Item -Force:$true -Confirm:$false -ErrorAction SilentlyContinue config.json
 Set-Content config.json '{
-  "maximum_requests": 5,
+  "maximum_requests": 500,
   "automate": "1",
-  "start_spot": "f88a6873-452f-428e-b138-76f682a3cfb4",
+  "start_spot": "22500b81-e889-4367-b83c-24c52914e2de",
   "debug": true
 }'
 Get-Content config.json
