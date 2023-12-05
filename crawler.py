@@ -18,7 +18,7 @@ __all__ = [
 ]
 
 
-class _OpID:
+class CrawlerInitOpID:
     START_FROM_UUID = "1"
     IMPORT_RESULT = "2"
 
@@ -46,10 +46,10 @@ def _init() -> str | int:
 
     _automate = get("automate")
     if _automate is not None:
-        if _automate == _OpID.START_FROM_UUID:
+        if _automate == CrawlerInitOpID.START_FROM_UUID:
             if not _validate_start_spot(_start_spot):
                 raise AutomationErrorAtInit("Invalid start_spot value.")
-        elif _automate == _OpID.IMPORT_RESULT:
+        elif _automate == CrawlerInitOpID.IMPORT_RESULT:
             if not _validate_import_json(_import_json):
                 raise AutomationErrorAtInit("Invalid import_json value.")
         else:
@@ -59,10 +59,10 @@ def _init() -> str | int:
         # Prompts
         _ans = inquirer.prompt([inquirer.List("op", message="What to do",
                                               choices=[
-                                                  ("Start from an UUID", _OpID.START_FROM_UUID),
-                                                  ("Import previous result", _OpID.IMPORT_RESULT)
+                                                  ("Start from an UUID", CrawlerInitOpID.START_FROM_UUID),
+                                                  ("Import previous result", CrawlerInitOpID.IMPORT_RESULT)
                                               ],
-                                              default=_OpID.IMPORT_RESULT)])
+                                              default=CrawlerInitOpID.IMPORT_RESULT)])
         _op = _ans["op"]
         if _op == "2":
             _ans = inquirer.prompt([
@@ -181,7 +181,7 @@ def _generate_graph_html(nodes: list[UUID], edges: list[tuple[UUID, UUID]], uuid
                  height="{}px".format(get("export_height")),
                  width="{}px".format(get("export_width")),
                  neighborhood_highlight=True,
-                 cdn_resources="in_line")
+                 cdn_resources="remote")
     _coord = len(uuid_to_ign) * 10
 
     for i in nodes:
@@ -202,7 +202,7 @@ def _generate_graph_html(nodes: list[UUID], edges: list[tuple[UUID, UUID]], uuid
     nt.show(get("export_html"), local=True, notebook=False)
 
 
-class _Requests:
+class CrawlerRequests:
     request_counts: int = 0
     last_req_time: float | int = -1  # timestamp
 
@@ -211,25 +211,25 @@ class _Requests:
 
     @staticmethod
     def wait(delay: int):
-        if _Requests.last_req_time == -1:
+        if CrawlerRequests.last_req_time == -1:
             return
-        _wait(gap=delay, last_time=_Requests.last_req_time)
+        _wait(gap=delay, last_time=CrawlerRequests.last_req_time)
 
     @staticmethod
     def add_count():
-        _Requests.request_counts += 1
-        _Requests.last_req_time = time.time()
+        CrawlerRequests.request_counts += 1
+        CrawlerRequests.last_req_time = time.time()
 
 
 def _make_request_to_laby(delay: int, session: requests.Session,
                           uuid: UUID, leftovers: list[UUID] = None,
                           mode: Literal["friends", "profile"] = "friends") -> [int, list]:
-    if _Requests.request_counts >= get("maximum_requests") and mode == "friends":
+    if CrawlerRequests.request_counts >= get("maximum_requests") and mode == "friends":
         logging.warning("Maximum request counts reached. Abort.")
         leftovers.append(uuid)
         return 429, []
 
-    _Requests.wait(delay)
+    CrawlerRequests.wait(delay)
 
     _url = "https://{}/api/v3/user/{}/{}".format(request_headers["host"], uuid, mode)
     logging.info(_url)
@@ -240,7 +240,7 @@ def _make_request_to_laby(delay: int, session: requests.Session,
     res = req.text
     logging.debug(res)
 
-    _Requests.add_count()
+    CrawlerRequests.add_count()
     if _status != 200:
         return _status, []
     try:
@@ -290,7 +290,7 @@ def run():
     _edges: list[tuple[UUID, UUID]] = []
     _uuid_to_ign: dict[str, str] = {}
 
-    if _op == _OpID.IMPORT_RESULT:
+    if _op == CrawlerInitOpID.IMPORT_RESULT:
         _run(nodes=_nodes, edges=_edges, uuid_to_ign=_uuid_to_ign, import_json=_import_json)
     else:
         _delay = 4
