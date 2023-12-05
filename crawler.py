@@ -26,6 +26,34 @@ class CrawlerInitOpID:
         raise NotImplementedError()
 
 
+class CrawlerCrawlOpId:
+    DEPTH_FIRST = "1"
+    BREADTH_FIRST = "2"
+
+    def __init__(self):
+        raise NotImplementedError()
+
+
+class CrawlerRequests:
+    request_counts: int = 0
+    last_req_time: float | int = -1  # timestamp
+    bfs_pending: list[UUID] = []
+
+    def __init__(self):
+        raise NotImplementedError()
+
+    @staticmethod
+    def wait(delay: int):
+        if CrawlerRequests.last_req_time == -1:
+            return
+        _wait(gap=delay, last_time=CrawlerRequests.last_req_time)
+
+    @staticmethod
+    def add_count():
+        CrawlerRequests.request_counts += 1
+        CrawlerRequests.last_req_time = time.time()
+
+
 def _init() -> str | int:
     _start_spot = get("start_spot")
     _import_json = get("import_json")
@@ -78,7 +106,7 @@ def _init() -> str | int:
                               default=_start_spot,
                               validate=lambda _prevans, _v: _validate_start_spot(_v))
             ])
-            _start_spot = UUID(_ans["uuid"])
+            _start_spot = _ans["uuid"]
             _import_json = None
 
     set_item("start_spot", _start_spot)
@@ -95,74 +123,82 @@ def _wait(gap: int, last_time: float | int = None):
             break
 
 
-def _construct_graph_json(nodes: list[UUID], edges: list[tuple[UUID, UUID]], uuid_to_ign: dict[str, str],
-                          delay: int, session: requests.Session,
-                          leftovers: list[UUID], forbid_out: list[UUID], error_out: list[UUID],
-                          current: UUID, previous: UUID = None):
-    def _add_edge(source: UUID, to: UUID):
-        _src = str(source)
-        _to = str(to)
-        if _src > _to:
-            _o: tuple = (to, source)
-        else:
-            _o: tuple = (source, to)
-        if edges.count(_o) == 0:
-            edges.append(_o)
+def _construct_graph_add_node(nodes: list[UUID], obj: UUID):
+    if nodes.count(obj) == 0:
+        nodes.append(obj)
 
-    def _fetch_res():
-        def _halt(_at, _re):
-            if _at >= _re:
-                return True
-            logging.warning("A previous request just failed! Waiting 90 seconds")
-            _wait(gap=90)
-            return False
 
-        _retries = 3
-        _attempts = 0
-        while True:
-            try:
-                _res_t = []
-                _status_t, _res_t = _make_request_to_laby(delay=delay, session=session, uuid=current,
-                                                          leftovers=leftovers)
-                if _status_t != 200:
-                    if _status_t == 403:
-                        logging.error("Remote host returned 403 FORBIDDEN: 1. Blocked by Cloudflare. 2. {} hides "
-                                      "friend list".format(str(current)))
-                        _res_t = []
-                        forbid_out.append(current)
-                    if _status_t >= 500:
-                        _attempts += 1
-                        if _halt(_attempts, _retries):
-                            break
-                        continue
+def _construct_graph_add_edge(edges: list[tuple[UUID, UUID]], source: UUID, to: UUID):
+    _src = str(source)
+    _to = str(to)
+    if _src > _to:
+        _o: tuple = (to, source)
+    else:
+        _o: tuple = (source, to)
+    if edges.count(_o) == 0:
+        edges.append(_o)
 
-                return _status_t, _res_t
-            except:
-                _attempts += 1
-                if _halt(_attempts, _retries):
-                    break
 
-        logging.error("Skipping fetching {} friend list because something did not go well".format(str(current)))
-        error_out.append(current)
-        return 500, []
+def _construct_graph_fetch_res(delay: int, session: requests.Session, uuid: UUID,
+                               leftovers: list[UUID], forbid_out: list[UUID], error_out: list[UUID]):
+    def _halt(_at, _re):
+        if _at >= _re:
+            return True
+        logging.warning("A previous request just failed! Waiting 90 seconds")
+        _wait(gap=90)
+        return False
 
-    _node_present = nodes.count(current)
-    if _node_present == 0:
-        nodes.append(current)
+    _retries = 3
+    _attempts = 0
+    _current = uuid
+    while True:
+        try:
+            _res_t = []
+            _status_t, _res_t = _make_request_to_laby(delay=delay, session=session, uuid=_current, leftovers=leftovers)
+            if _status_t != 200:
+                if _status_t == 403:
+                    logging.error("Remote host returned 403 FORBIDDEN: 1. Blocked by Cloudflare. 2. {} hides "
+                                  "friend list".format(str(_current)))
+                    _res_t = []
+                    forbid_out.append(_current)
+                if _status_t >= 500:
+                    _attempts += 1
+                    if _halt(_attempts, _retries):
+                        break
+                    continue
+
+            return _status_t, _res_t
+        except:
+            _attempts += 1
+            if _halt(_attempts, _retries):
+                break
+
+    logging.error("Skipping fetching {} friend list because something did not go well".format(str(_current)))
+    error_out.append(_current)
+    return 500, []
+
+
+def _construct_graph_dfs(nodes: list[UUID], edges: list[tuple[UUID, UUID]], uuid_to_ign: dict[str, str],
+                         delay: int, session: requests.Session,
+                         leftovers: list[UUID], forbid_out: list[UUID], error_out: list[UUID],
+                         current: UUID, previous: UUID = None):
 
     _has_prev = previous is not None
     if _has_prev:
-        _add_edge(current, previous)
+        _construct_graph_add_edge(edges=edges, source=current, to=previous)
 
-    if _node_present != 0:
+    if nodes.count(current) != 0:
         return
 
-    _status, _res = _fetch_res()
+    _construct_graph_add_node(nodes, current)
+
+    _status, _res = _construct_graph_fetch_res(delay=delay, session=session, uuid=current,
+                                               leftovers=leftovers, error_out=error_out, forbid_out=forbid_out)
 
     for _i in _res:
         _next = _i["uuid"]
         _obj = UUID(_next)
-        _add_edge(_obj, current)
+        _construct_graph_add_edge(edges=edges, source=_obj, to=current)
 
     for _i in _res:
         _next = _i["uuid"]
@@ -170,9 +206,40 @@ def _construct_graph_json(nodes: list[UUID], edges: list[tuple[UUID, UUID]], uui
         if _has_prev and str(_obj) == str(previous):
             continue
         uuid_to_ign[str(_obj)] = _i["user_name"]
-        _construct_graph_json(nodes=nodes, edges=edges, uuid_to_ign=uuid_to_ign,
-                              forbid_out=forbid_out, error_out=error_out, leftovers=leftovers,
-                              delay=delay, session=session, current=_next, previous=current)
+        _construct_graph_dfs(nodes=nodes, edges=edges, uuid_to_ign=uuid_to_ign,
+                             forbid_out=forbid_out, error_out=error_out, leftovers=leftovers,
+                             delay=delay, session=session, current=_next, previous=current)
+
+
+def _construct_graph_bfs(nodes: list[UUID], edges: list[tuple[UUID, UUID]], uuid_to_ign: dict[str, str],
+                         delay: int, session: requests.Session,
+                         leftovers: list[UUID], forbid_out: list[UUID], error_out: list[UUID],
+                         start_spot: UUID):
+
+    _queue = CrawlerRequests.bfs_pending
+
+    _queue.append(start_spot)
+
+    while True:
+        if len(_queue) == 0:
+            break
+        _current = _queue[0]
+        _queue.remove(_current)
+
+        _node_present = nodes.count(_current)
+        if _node_present != 0:
+            continue
+        _construct_graph_add_node(nodes, _current)
+
+        _status, _res = _construct_graph_fetch_res(delay=delay, session=session, uuid=_current,
+                                                   leftovers=leftovers, error_out=error_out, forbid_out=forbid_out)
+
+        for _i in _res:
+            _next = _i["uuid"]
+            _obj = UUID(_next)
+            uuid_to_ign[str(_obj)] = _i["user_name"]
+            _construct_graph_add_edge(edges=edges, source=_obj, to=_current)
+            _queue.append(_obj)
 
 
 def _generate_graph_html(nodes: list[UUID], edges: list[tuple[UUID, UUID]], uuid_to_ign: dict[str, str]):
@@ -200,25 +267,6 @@ def _generate_graph_html(nodes: list[UUID], edges: list[tuple[UUID, UUID]], uuid
 
     nt.toggle_physics(False)
     nt.show(get("export_html"), local=True, notebook=False)
-
-
-class CrawlerRequests:
-    request_counts: int = 0
-    last_req_time: float | int = -1  # timestamp
-
-    def __init__(self):
-        raise NotImplementedError()
-
-    @staticmethod
-    def wait(delay: int):
-        if CrawlerRequests.last_req_time == -1:
-            return
-        _wait(gap=delay, last_time=CrawlerRequests.last_req_time)
-
-    @staticmethod
-    def add_count():
-        CrawlerRequests.request_counts += 1
-        CrawlerRequests.last_req_time = time.time()
 
 
 def _make_request_to_laby(delay: int, session: requests.Session,
@@ -262,10 +310,22 @@ def _run(nodes: list[UUID], edges: list[tuple[UUID, UUID]], uuid_to_ign: dict[st
     if _uuid is not None:
         logging.info("Wait 30 seconds in case 429")
         _wait(gap=30)
-        _construct_graph_json(nodes=nodes, edges=edges, uuid_to_ign=uuid_to_ign,
-                              delay=delay, session=session,
-                              leftovers=leftovers, forbid_out=forbid_out, error_out=error_out,
-                              current=_uuid)
+        _method_op = get("crawling_method")
+        if _method_op == CrawlerCrawlOpId.DEPTH_FIRST:
+            logging.debug("Depth-first crawling.")
+            _construct_graph_dfs(nodes=nodes, edges=edges, uuid_to_ign=uuid_to_ign,
+                                 delay=delay, session=session,
+                                 leftovers=leftovers, forbid_out=forbid_out, error_out=error_out,
+                                 current=_uuid)
+        elif _method_op == CrawlerCrawlOpId.BREADTH_FIRST:
+            logging.debug("Breadth-first crawling.")
+            _construct_graph_bfs(nodes=nodes, edges=edges, uuid_to_ign=uuid_to_ign,
+                                 delay=delay, session=session,
+                                 leftovers=leftovers, forbid_out=forbid_out, error_out=error_out,
+                                 start_spot=_uuid)
+        else:
+            raise ValueError("There's nothing.")
+
         _status, _res = _make_request_to_laby(delay=delay, session=session, uuid=_uuid, mode="profile")
         _s = str(_uuid)
         if _status == 200:
@@ -283,7 +343,7 @@ def _run(nodes: list[UUID], edges: list[tuple[UUID, UUID]], uuid_to_ign: dict[st
 def run():
     _op = _init()
 
-    _start_spot = get("start_spot")
+    _start_spot = UUID(get("start_spot"))
     _import_json = get("import_json")
 
     _nodes: list[UUID] = []
