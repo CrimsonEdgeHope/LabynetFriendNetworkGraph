@@ -181,7 +181,7 @@ def _generate_graph_html(nodes: list[UUID], edges: list[tuple[UUID, UUID]], uuid
                  height="{}px".format(get("export_height")),
                  width="{}px".format(get("export_width")),
                  neighborhood_highlight=True,
-                 cdn_resources="remote")
+                 cdn_resources="in_line")
     _coord = len(uuid_to_ign) * 10
 
     for i in nodes:

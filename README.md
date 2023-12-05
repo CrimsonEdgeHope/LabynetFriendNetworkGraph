@@ -13,7 +13,8 @@ pip install -r requirements.txt
 python LabynetFriendNetworkGraph.py
 ```
 
-After the script finishes job, a json file that contains all fetched data will be written to `result` directory, and a html file that reveals a picture of visual graph will be generated. 
+After the script finishes job, a json file that contains all fetched data will be saved to `result` directory, which is useful for graph regeneration.
+A html file that reveals a picture of graph will be generated.
 
 ## Config
 

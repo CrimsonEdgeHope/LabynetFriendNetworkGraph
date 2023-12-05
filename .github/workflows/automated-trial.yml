@@ -44,7 +44,7 @@ jobs:
         if: ${{ always() }}
         uses: actions/upload-artifact@v3
         with:
-          name: Result
+          name: Result (${{ matrix.os }})
           path: |
             config.json
             lib/
