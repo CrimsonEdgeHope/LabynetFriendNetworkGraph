@@ -12,7 +12,9 @@ from config import get_item, get_proxies, set_item
 from util import request_headers, save_result, import_result, generate_graph_html
 
 __all__ = [
-    "run"
+    "run",
+    "CrawlerInitOpID",
+    "CrawlerCrawlOpId"
 ]
 
 
