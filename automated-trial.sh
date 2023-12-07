@@ -4,7 +4,7 @@ rm -rf config.json
 
 cat << EOF > config.json
 {
-  "maximum_requests": 100,
+  "maximum_requests": 250,
   "crawling_method": "1",
   "automate": "1",
   "start_spot": "7659cedb-c9c1-4f28-b966-19823fd8666b",
