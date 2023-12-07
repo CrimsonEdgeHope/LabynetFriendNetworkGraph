@@ -2,16 +2,14 @@ import os
 import inquirer
 import json
 import logging
-import random
 from json import JSONDecodeError
 import traceback
 from typing import Literal
 import requests
 import time
 from uuid import UUID
-from pyvis.network import Network
-from config import get, get_proxies, set_item
-from util import request_headers, save_result, import_result
+from config import get_item, get_proxies, set_item
+from util import request_headers, save_result, import_result, generate_graph_html
 
 __all__ = [
     "run"
@@ -55,8 +53,8 @@ class CrawlerRequests:
 
 
 def _init() -> str | int:
-    _start_spot = get("start_spot")
-    _import_json = get("import_json")
+    _start_spot = get_item("start_spot")
+    _import_json = get_item("import_json")
 
     class AutomationErrorAtInit(Exception):
         def __init__(self, msg):
@@ -72,7 +70,7 @@ def _init() -> str | int:
     def _validate_import_json(_v):
         return os.path.exists(os.path.join("result", _v))
 
-    _automate = get("automate")
+    _automate = get_item("automate")
     if _automate is not None:
         if _automate == CrawlerInitOpID.START_FROM_UUID:
             if not _validate_start_spot(_start_spot):
@@ -242,37 +240,10 @@ def _construct_graph_bfs(nodes: list[UUID], edges: list[tuple[UUID, UUID]], uuid
             _queue.append(_obj)
 
 
-def _generate_graph_html(nodes: list[UUID], edges: list[tuple[UUID, UUID]], uuid_to_ign: dict[str, str]):
-    nt = Network(filter_menu=True,
-                 select_menu=True,
-                 height="{}px".format(get("export_height")),
-                 width="{}px".format(get("export_width")),
-                 neighborhood_highlight=True,
-                 cdn_resources="remote")
-    _coord = len(uuid_to_ign) * 10
-
-    for i in nodes:
-        _u = str(i)
-        _u = uuid_to_ign.get(_u, _u)
-        nt.add_node(n_id=_u, label=_u,
-                    x=random.Random().randint(0, _coord), y=random.Random().randint(0, _coord), size=10)
-
-    for i in edges:
-        _u0 = str(i[0])
-        _u0 = uuid_to_ign.get(_u0, _u0)
-        _u1 = str(i[1])
-        _u1 = uuid_to_ign.get(_u1, _u1)
-        nt.add_edge(_u0, _u1)
-        nt.add_edge(_u1, _u0)
-
-    nt.toggle_physics(False)
-    nt.show(get("export_html"), local=True, notebook=False)
-
-
-def _make_request_to_laby(delay: int, session: requests.Session,
+def _make_request_to_laby(session: requests.Session, delay: int,
                           uuid: UUID, leftovers: list[UUID] = None,
                           mode: Literal["friends", "profile"] = "friends") -> [int, list]:
-    if CrawlerRequests.request_counts >= get("maximum_requests") and mode == "friends":
+    if CrawlerRequests.request_counts >= get_item("maximum_requests") and mode == "friends":
         logging.warning("Maximum request counts reached. Abort.")
         leftovers.append(uuid)
         return 429, []
@@ -310,7 +281,7 @@ def _run(nodes: list[UUID], edges: list[tuple[UUID, UUID]], uuid_to_ign: dict[st
     if _uuid is not None:
         logging.info("Wait 30 seconds in case 429")
         _wait(gap=30)
-        _method_op = get("crawling_method")
+        _method_op = get_item("crawling_method")
         if _method_op == CrawlerCrawlOpId.DEPTH_FIRST:
             logging.debug("Depth-first crawling.")
             _construct_graph_dfs(nodes=nodes, edges=edges, uuid_to_ign=uuid_to_ign,
@@ -337,16 +308,16 @@ def _run(nodes: list[UUID], edges: list[tuple[UUID, UUID]], uuid_to_ign: dict[st
     else:
         raise ValueError("There's nothing.")
 
-    _generate_graph_html(nodes, edges, uuid_to_ign)
+    generate_graph_html(nodes, edges, uuid_to_ign)
 
 
 def run():
     _op = _init()
 
-    _start_spot = get("start_spot")
+    _start_spot = get_item("start_spot")
     if _start_spot:
         _start_spot = UUID(_start_spot)
-    _import_json = get("import_json")
+    _import_json = get_item("import_json")
 
     _nodes: list[UUID] = []
     _edges: list[tuple[UUID, UUID]] = []

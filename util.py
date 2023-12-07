@@ -1,15 +1,17 @@
 __all__ = [
     "request_headers",
     "save_result",
-    "import_result"
+    "import_result",
+    "generate_graph_html"
 ]
 
 import json
 import logging
 import os
+import random
 import time
 from uuid import UUID
-
+from pyvis.network import Network
 import config
 
 request_headers = {
@@ -66,3 +68,30 @@ def import_result(filename: str):
 
     logging.info("Importing result from {}".format(_filepath))
     return nodes, edges, uuid_to_ign
+
+
+def generate_graph_html(nodes: list[UUID], edges: list[tuple[UUID, UUID]], uuid_to_ign: dict[str, str]):
+    nt = Network(filter_menu=True,
+                 select_menu=True,
+                 height="{}px".format(config.get_item("export_height")),
+                 width="{}px".format(config.get_item("export_width")),
+                 neighborhood_highlight=True,
+                 cdn_resources="remote")
+    _coord = len(uuid_to_ign) * 10
+
+    for i in nodes:
+        _u = str(i)
+        _u = uuid_to_ign.get(_u, _u)
+        nt.add_node(n_id=_u, label=_u,
+                    x=random.Random().randint(0, _coord), y=random.Random().randint(0, _coord), size=10)
+
+    for i in edges:
+        _u0 = str(i[0])
+        _u0 = uuid_to_ign.get(_u0, _u0)
+        _u1 = str(i[1])
+        _u1 = uuid_to_ign.get(_u1, _u1)
+        nt.add_edge(_u0, _u1)
+        nt.add_edge(_u1, _u0)
+
+    nt.toggle_physics(False)
+    nt.show(config.get_item("export_html"), local=True, notebook=False)

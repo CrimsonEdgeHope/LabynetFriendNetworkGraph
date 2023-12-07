@@ -4,7 +4,7 @@ import json
 
 __all__ = [
     "load_config",
-    "get",
+    "get_item",
     "set_item",
     "get_proxies",
     "get_config_object"
@@ -54,14 +54,14 @@ def load_config():
             except KeyError:
                 pass
     logging_pam = {
-        "level": logging.DEBUG if get("debug") else logging.INFO,
+        "level": logging.DEBUG if get_item("debug") else logging.INFO,
         "format": "%(asctime)s [%(levelname)s] [%(filename)s:%(lineno)d] %(message)s"
     }
     logging.basicConfig(**logging_pam)
     logging.debug(_config)
 
 
-def get(key: str) -> _acceptable | None:
+def get_item(key: str) -> _acceptable | None:
     _c = get_config_object()
     try:
         _def = _default[key]
@@ -83,8 +83,8 @@ def set_item(key: str, value: _acceptable | None):
 
 def get_proxies() -> dict:
     return {
-        "http": get("http_proxy"),
-        "https": get("https_proxy")
+        "http": get_item("http_proxy"),
+        "https": get_item("https_proxy")
     }
 
 
