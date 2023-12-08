@@ -1,9 +1,8 @@
-Remove-Item -Force -ErrorAction SilentlyContinue config.json
+Remove-Item -Recurse -Force -ErrorAction SilentlyContinue config.json
 Set-Content config.json '{
-  "maximum_requests": 1000,
+  "maximum_requests": 10,
   "automate": "1",
-  "start_spot": "22500b81-e889-4367-b83c-24c52914e2de",
-  "debug": true
+  "start_spot": "f88a6873-452f-428e-b138-76f682a3cfb4"
 }'
 Get-Content config.json
 
