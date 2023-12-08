@@ -1,14 +1,14 @@
-Remove-Item -Force -ErrorAction SilentlyContinue config.json
+Remove-Item -Recurse -Force -ErrorAction SilentlyContinue config.json
 Set-Content config.json '{
-  "maximum_requests": 1000,
+  "maximum_requests": 200,
   "automate": "1",
-  "start_spot": "22500b81-e889-4367-b83c-24c52914e2de",
+  "start_spot": "f88a6873-452f-428e-b138-76f682a3cfb4",
   "debug": true
 }'
 Get-Content config.json
 
 python --version
-if ($LASTEXITCODE -ne 0) {
+if ($? -ne $true) {
     Write-Output "Python..."
     exit 1
 }
@@ -16,7 +16,7 @@ if ($LASTEXITCODE -ne 0) {
 Get-ChildItem .
 
 python .\LabynetFriendNetworkGraph.py
-if ($LASTEXITCODE -ne 0) {
+if ($? -ne $true) {
     Write-Output "Script execution failure..."
     exit 1
 }

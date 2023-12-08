@@ -1,6 +1,4 @@
 __all__ = [
-    "get_request_headers",
-    "set_request_headers",
     "save_result",
     "import_result",
     "generate_graph_html",
@@ -16,26 +14,7 @@ import random
 import time
 from uuid import UUID
 from pyvis.network import Network
-import config
-
-_request_headers = {}
-
-
-def set_request_headers(debug: bool):
-    global _request_headers
-    _request_headers = {
-        "host": "laby.net",
-        "user-agent":
-            "Mozilla/5.0 (compatible; LabynetFriendNetworkGraph/beta-0.1.2; +https://github.com/CrimsonEdgeHope)"
-            if not debug
-            else "Mozilla/5.0 (compatible; LabynetFriendNetworkGraph/beta-dev; +https://github.com/CrimsonEdgeHope)",
-        "accept": "*/*"
-    }
-
-
-def get_request_headers() -> dict:
-    global _request_headers
-    return _request_headers
+from config import get_item, get_config_object, get_request_headers
 
 
 def save_result(nodes: list[UUID], uuid_to_ign: dict[str, str], edges: list[tuple[UUID, UUID]],
@@ -44,7 +23,7 @@ def save_result(nodes: list[UUID], uuid_to_ign: dict[str, str], edges: list[tupl
         "metadata": {
             "created_at_unix": time.time(),
             "request_headers": get_request_headers(),
-            "config": config.get_config_object()
+            "config": get_config_object()
         },
         "leftovers": [str(i) for i in leftovers],
         "errored": {
@@ -83,6 +62,7 @@ def import_result(filename: str, full: bool = False):
         for _k, _v in r["data"]["uuid_to_ign"].items():
             uuid_to_ign[_k] = _v
         if not full:
+            logging.info("Importing result from {}".format(_filepath))
             return nodes, edges, uuid_to_ign
 
         leftovers: list[UUID] = []
@@ -100,8 +80,8 @@ def import_result(filename: str, full: bool = False):
 def generate_graph_html(nodes: list[UUID], edges: list[tuple[UUID, UUID]], uuid_to_ign: dict[str, str]):
     nt = Network(filter_menu=True,
                  select_menu=True,
-                 height="{}px".format(config.get_item("export_height")),
-                 width="{}px".format(config.get_item("export_width")),
+                 height="{}px".format(get_item("export_height")),
+                 width="{}px".format(get_item("export_width")),
                  neighborhood_highlight=True,
                  cdn_resources="remote")
     _coord = len(uuid_to_ign) * 10
@@ -121,7 +101,7 @@ def generate_graph_html(nodes: list[UUID], edges: list[tuple[UUID, UUID]], uuid_
         nt.add_edge(_u1, _u0)
 
     nt.toggle_physics(False)
-    nt.show(config.get_item("export_html"), local=True, notebook=False)
+    nt.show(get_item("export_html"), local=True, notebook=False)
 
 
 def path_to_result(filename: str) -> str:

@@ -8,8 +8,17 @@ from typing import Literal
 import requests
 import time
 from uuid import UUID
-from config import *
-from util import get_request_headers, save_result, import_result, generate_graph_html, path_to_result, CrawlerInitOpID
+from config import (get_item,
+                    get_request_headers,
+                    get_start_spot,
+                    get_proxies,
+                    get_crawling_method,
+                    get_automate,
+                    get_import_json,
+                    set_item,
+                    CrawlerCrawlOpId)
+from util import save_result, import_result, generate_graph_html, path_to_result, CrawlerInitOpID
+
 
 __all__ = [
     "run"

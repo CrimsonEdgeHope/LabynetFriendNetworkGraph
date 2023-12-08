@@ -3,6 +3,11 @@ Remove-Item -Recurse -Force -ErrorAction SilentlyContinue "action7096370784"
 
 Invoke-WebRequest -Verbose -OutFile "action7096370784.zip" "https://github.com/CrimsonEdgeHope/LabynetFriendNetworkGraph/releases/download/beta-0.1.2/ActionRun-No-7096370784-Artifact-Result-ubuntu-2204.zip"
 
+if ($? -ne $true) {
+    Write-Output "Failed to reach GitHub"
+    exit 1
+}
+
 Expand-Archive -Force -Path "action7096370784.zip"
 Get-ChildItem "action7096370784"
 Get-ChildItem "action7096370784\result"
@@ -17,7 +22,7 @@ Set-Content config.json '{
 Get-Content config.json
 
 python --version
-if ($LASTEXITCODE -ne 0) {
+if ($? -ne $true) {
     Write-Output "Python..."
     exit 1
 }
@@ -25,7 +30,7 @@ if ($LASTEXITCODE -ne 0) {
 Get-ChildItem .
 
 python .\LabynetFriendNetworkGraph.py
-if ($LASTEXITCODE -ne 0) {
+if ($? -ne $true) {
     Write-Output "Script execution failure..."
     exit 1
 }

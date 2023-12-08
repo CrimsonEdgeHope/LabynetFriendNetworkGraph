@@ -1,7 +1,6 @@
 import logging
 import os
 import json
-from util import set_request_headers, get_request_headers
 
 __all__ = [
     "load_config",
@@ -14,7 +13,9 @@ __all__ = [
     "get_import_json",
     "get_crawling_method",
     "is_debug",
-    "CrawlerCrawlOpId"
+    "CrawlerCrawlOpId",
+    "get_request_headers",
+    "set_request_headers"
 ]
 
 _config_file_name = "config.json"
@@ -126,3 +127,23 @@ class CrawlerCrawlOpId:
 
     def __init__(self):
         raise NotImplementedError()
+
+
+_request_headers = {}
+
+
+def set_request_headers(debug: bool):
+    global _request_headers
+    _request_headers = {
+        "host": "laby.net",
+        "user-agent":
+            "Mozilla/5.0 (compatible; LabynetFriendNetworkGraph/beta-0.1.2; +https://github.com/CrimsonEdgeHope)"
+            if not debug
+            else "Mozilla/5.0 (compatible; LabynetFriendNetworkGraph/beta-dev; +https://github.com/CrimsonEdgeHope)",
+        "accept": "*/*"
+    }
+
+
+def get_request_headers() -> dict:
+    global _request_headers
+    return _request_headers
