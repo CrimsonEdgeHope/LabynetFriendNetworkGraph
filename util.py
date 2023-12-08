@@ -70,21 +70,31 @@ def save_result(nodes: list[UUID], uuid_to_ign: dict[str, str], edges: list[tupl
         logging.info("Saving result to {}".format(_filepath))
 
 
-def import_result(filename: str):
+def import_result(filename: str, full: bool = False):
     _filepath = path_to_result(filename)
     nodes: list[UUID] = []
     edges: list[tuple[UUID, UUID]] = []
     uuid_to_ign: dict[str, str] = {}
+
     with open(_filepath, "r") as resf:
         r = json.loads(resf.read())
-        r = r["data"]
-        nodes.extend(list(map(lambda _v: UUID(_v), r["nodes"])))
-        edges.extend(list(map(lambda _v: (UUID(_v[0]), UUID(_v[1])), r["edges"])))
-        for _k, _v in r["uuid_to_ign"].items():
+        nodes.extend(list(map(lambda _v: UUID(_v), r["data"]["nodes"])))
+        edges.extend(list(map(lambda _v: (UUID(_v[0]), UUID(_v[1])), r["data"]["edges"])))
+        for _k, _v in r["data"]["uuid_to_ign"].items():
             uuid_to_ign[_k] = _v
+        if not full:
+            return nodes, edges, uuid_to_ign
+
+        leftovers: list[UUID] = []
+        error_out: list[UUID] = []
+        forbid_out: list[UUID] = []
+        leftovers.extend(list(map(lambda _v: UUID(_v), r["leftovers"])))
+        error_out.extend(list(map(lambda _v: UUID(_v), r["errored"]["error_out"])))
+        forbid_out.extend(list(map(lambda _v: UUID(_v), r["errored"]["forbid_out"])))
+        metadata: dict = r["metadata"]
 
     logging.info("Importing result from {}".format(_filepath))
-    return nodes, edges, uuid_to_ign
+    return nodes, edges, uuid_to_ign, leftovers, forbid_out, error_out, metadata
 
 
 def generate_graph_html(nodes: list[UUID], edges: list[tuple[UUID, UUID]], uuid_to_ign: dict[str, str]):

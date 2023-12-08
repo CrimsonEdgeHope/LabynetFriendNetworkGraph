@@ -21,15 +21,9 @@ if __name__ == "__main__":
         ])
         _import_json = _ans["filename"]
     elif not _validate_import_json(_import_json):
-        raise ValueError()
+        raise ValueError("Invalid import_json value.")
 
-    nodes, edges, uuid_to_ign = import_result(_import_json)
-    with open(path_to_result(_import_json), "r") as f:
-        _obj = json.loads(f.read())
-        _metadata = _obj["metadata"]
-        _leftovers = _obj["leftovers"]
-        _error_out = _obj["errored"]["error_out"]
-        _forbid_out = _obj["errored"]["forbid_out"]
+    nodes, edges, uuid_to_ign, _leftovers, _forbid_out, _error_out, _metadata = import_result(_import_json, full=True)
 
     len_of_nodes = len(nodes)
     len_of_edges = len(edges)
