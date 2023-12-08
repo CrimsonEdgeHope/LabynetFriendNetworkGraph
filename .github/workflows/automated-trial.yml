@@ -1,0 +1,61 @@
+name: Automated Trial
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - "crawler.py"
+  pull_request:
+    paths:
+      - "crawler.py"
+  workflow_dispatch:
+
+
+
+jobs:
+  trial:
+    name: Automated trial on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 120
+    strategy:
+      max-parallel: 2
+      fail-fast: false
+      matrix:
+        os: [ windows-2022, ubuntu-22.04 ]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+          cache: 'pip'
+      - name: Python package
+        run: pip install -r requirements.txt
+      - name: Run script
+        if: ${{ matrix.os == 'windows-2022' }}
+        run: powershell -NoLogo -File automated-trial.ps1
+        shell: cmd
+      - name: Run script
+        if: ${{ matrix.os == 'ubuntu-22.04' }}
+        run: ./automated-trial.sh
+        shell: bash
+      - name: Lint
+        if: ${{ matrix.os == 'windows-2022' }}
+        run: powershell -NoLogo -File result_json_lint_result_directory.ps1
+        shell: cmd
+      - name: Lint
+        if: ${{ matrix.os == 'ubuntu-22.04' }}
+        run: ./result_json_lint_result_directory.sh
+        shell: bash
+      - name: Artifacts
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v3
+        with:
+          name: Result (${{ matrix.os }})
+          path: |
+            config.json
+            lib/
+            result/
+            graph.html
+          retention-days: 30
