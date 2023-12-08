@@ -6,12 +6,12 @@ import config
 from util import import_result, path_to_result, CrawlerInitOpID, get_ign_from_uuid
 
 
-def _validate_import_json(_v):
-    return os.path.exists(path_to_result(_v))
+__all__ = [
+    "result_json_prompt"
+]
 
 
-if __name__ == "__main__":
-    config.load_config()
+def result_json_prompt():
     _import_json = config.get_import_json()
     if config.get_automate() != CrawlerInitOpID.IMPORT_RESULT:
         _ans = inquirer.prompt([
@@ -23,14 +23,24 @@ if __name__ == "__main__":
     elif not _validate_import_json(_import_json):
         raise ValueError("Invalid import_json value.")
 
-    nodes, edges, uuid_to_ign, _leftovers, _forbid_out, _error_out, _metadata = import_result(_import_json, full=True)
+    return _import_json, import_result(_import_json, full=True)
+
+
+def _validate_import_json(_v):
+    return os.path.exists(path_to_result(_v))
+
+
+if __name__ == "__main__":
+    config.load_config()
+
+    import_json, (nodes, edges, uuid_to_ign, leftovers, forbid_out, error_out, metadata) = result_json_prompt()
 
     len_of_nodes = len(nodes)
     len_of_edges = len(edges)
     len_of_igns = len(uuid_to_ign)
-    len_of_leftovers = len(_leftovers)
-    len_of_error_out = len(_error_out)
-    len_of_forbid_out = len(_forbid_out)
+    len_of_leftovers = len(leftovers)
+    len_of_error_out = len(error_out)
+    len_of_forbid_out = len(forbid_out)
 
     print("""
 Result {import_json}:
@@ -41,17 +51,17 @@ Web request headers:
 
 Config:
 {config_object}
-    """.format(import_json=_import_json,
-               created_at_unix=time.strftime("%Y/%m/%d %H:%M:%S", time.gmtime(_metadata["created_at_unix"])),
-               request_headers=_metadata["request_headers"],
-               config_object=_metadata["config"]))
+    """.format(import_json=import_json,
+               created_at_unix=time.asctime(time.gmtime(metadata["created_at_unix"])),
+               request_headers=metadata["request_headers"],
+               config_object=metadata["config"]))
 
     if len_of_nodes <= 0:
         exit(0)
 
     print("""According to this copy of result, the crawler tracked {len_of_nodes} Minecraft player{_s} that have registered on laby.net.""".format(len_of_nodes=len_of_nodes, _s="" if len_of_nodes == 1 else "s"))
 
-    _start_spot = _metadata["config"].get("start_spot", None)
+    _start_spot = metadata["config"].get("start_spot", None)
     if _start_spot:
         _start_spot_name = get_ign_from_uuid(uuid_to_ign=uuid_to_ign, target=_start_spot)
         print("""Tracking began at the player{pn} with uuid {uuid}""".format(
