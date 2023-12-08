@@ -128,8 +128,9 @@ def path_to_result(filename: str) -> str:
     return os.path.join("result", filename)
 
 
-def get_ign_from_uuid(uuid_to_ign: dict[str, str], target: str) -> str:
-    return uuid_to_ign.get(target, target)
+def get_ign_from_uuid(uuid_to_ign: dict[str, str], target: str | UUID) -> str:
+    _target = str(target)
+    return uuid_to_ign.get(_target, _target)
 
 
 class CrawlerInitOpID:
