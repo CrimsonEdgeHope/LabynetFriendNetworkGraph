@@ -8,30 +8,12 @@ from typing import Literal
 import requests
 import time
 from uuid import UUID
-from config import get_item, get_proxies, set_item
-from util import request_headers, save_result, import_result, generate_graph_html
+from config import *
+from util import get_request_headers, save_result, import_result, generate_graph_html, path_to_result, CrawlerInitOpID
 
 __all__ = [
-    "run",
-    "CrawlerInitOpID",
-    "CrawlerCrawlOpId"
+    "run"
 ]
-
-
-class CrawlerInitOpID:
-    START_FROM_UUID = "1"
-    IMPORT_RESULT = "2"
-
-    def __init__(self):
-        raise NotImplementedError()
-
-
-class CrawlerCrawlOpId:
-    DEPTH_FIRST = "1"
-    BREADTH_FIRST = "2"
-
-    def __init__(self):
-        raise NotImplementedError()
 
 
 class CrawlerRequests:
@@ -55,8 +37,8 @@ class CrawlerRequests:
 
 
 def _init() -> str | int:
-    _start_spot = get_item("start_spot")
-    _import_json = get_item("import_json")
+    _start_spot = get_start_spot()
+    _import_json = get_import_json()
 
     class AutomationErrorAtInit(Exception):
         def __init__(self, msg):
@@ -70,9 +52,9 @@ def _init() -> str | int:
             return False
 
     def _validate_import_json(_v):
-        return os.path.exists(os.path.join("result", _v))
+        return os.path.exists(path_to_result(_v))
 
-    _automate = get_item("automate")
+    _automate = get_automate()
     if _automate is not None:
         if _automate == CrawlerInitOpID.START_FROM_UUID:
             if not _validate_start_spot(_start_spot):
@@ -252,9 +234,10 @@ def _make_request_to_laby(session: requests.Session, delay: int,
 
     CrawlerRequests.wait(delay)
 
-    _url = "https://{}/api/v3/user/{}/{}".format(request_headers["host"], uuid, mode)
+    _rh = get_request_headers()
+    _url = "https://{}/api/v3/user/{}/{}".format(_rh["host"], uuid, mode)
     logging.info(_url)
-    req = session.get(_url, proxies=get_proxies(), headers=request_headers)
+    req = session.get(_url, proxies=get_proxies(), headers=_rh)
     _status = req.status_code
     logging.debug(_status)
     logging.debug(req.headers)
@@ -283,7 +266,7 @@ def _run(nodes: list[UUID], edges: list[tuple[UUID, UUID]], uuid_to_ign: dict[st
     if _uuid is not None:
         logging.info("Wait 30 seconds in case 429")
         _wait(gap=30)
-        _method_op = get_item("crawling_method")
+        _method_op = get_crawling_method()
         if _method_op == CrawlerCrawlOpId.DEPTH_FIRST:
             logging.debug("Depth-first crawling.")
             _construct_graph_dfs(nodes=nodes, edges=edges, uuid_to_ign=uuid_to_ign,
@@ -316,10 +299,10 @@ def _run(nodes: list[UUID], edges: list[tuple[UUID, UUID]], uuid_to_ign: dict[st
 def run():
     _op = _init()
 
-    _start_spot = get_item("start_spot")
+    _start_spot = get_start_spot()
     if _start_spot:
         _start_spot = UUID(_start_spot)
-    _import_json = get_item("import_json")
+    _import_json = get_import_json()
 
     _nodes: list[UUID] = []
     _edges: list[tuple[UUID, UUID]] = []

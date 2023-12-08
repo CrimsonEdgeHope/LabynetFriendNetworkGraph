@@ -1,8 +1,12 @@
 __all__ = [
-    "request_headers",
+    "get_request_headers",
+    "set_request_headers",
     "save_result",
     "import_result",
-    "generate_graph_html"
+    "generate_graph_html",
+    "path_to_result",
+    "get_ign_from_uuid",
+    "CrawlerInitOpID"
 ]
 
 import json
@@ -14,11 +18,24 @@ from uuid import UUID
 from pyvis.network import Network
 import config
 
-request_headers = {
-    "host": "laby.net",
-    "user-agent": "Mozilla/5.0 (compatible; LabynetFriendNetworkGraph/beta-0.1.2; +https://github.com/CrimsonEdgeHope)",
-    "accept": "*/*"
-}
+_request_headers = {}
+
+
+def set_request_headers(debug: bool):
+    global _request_headers
+    _request_headers = {
+        "host": "laby.net",
+        "user-agent":
+            "Mozilla/5.0 (compatible; LabynetFriendNetworkGraph/beta-0.1.2; +https://github.com/CrimsonEdgeHope)"
+            if not debug
+            else "Mozilla/5.0 (compatible; LabynetFriendNetworkGraph/beta-dev; +https://github.com/CrimsonEdgeHope)",
+        "accept": "*/*"
+    }
+
+
+def get_request_headers() -> dict:
+    global _request_headers
+    return _request_headers
 
 
 def save_result(nodes: list[UUID], uuid_to_ign: dict[str, str], edges: list[tuple[UUID, UUID]],
@@ -26,7 +43,7 @@ def save_result(nodes: list[UUID], uuid_to_ign: dict[str, str], edges: list[tupl
     r = {
         "metadata": {
             "created_at_unix": time.time(),
-            "request_headers": request_headers,
+            "request_headers": get_request_headers(),
             "config": config.get_config_object()
         },
         "leftovers": [str(i) for i in leftovers],
@@ -44,7 +61,7 @@ def save_result(nodes: list[UUID], uuid_to_ign: dict[str, str], edges: list[tupl
     for _k, _v in uuid_to_ign.items():
         _obj[_k] = _v
 
-    _filepath = os.path.join("result", "{}.json".format(time.strftime("%Y-%m-%d-%H-%M-%S")))
+    _filepath = path_to_result("{}.json".format(time.strftime("%Y-%m-%d_%H-%M-%S")))
     _dirs = os.path.split(_filepath)[0]
     if _dirs:
         os.makedirs(_dirs, exist_ok=True)
@@ -54,7 +71,7 @@ def save_result(nodes: list[UUID], uuid_to_ign: dict[str, str], edges: list[tupl
 
 
 def import_result(filename: str):
-    _filepath = os.path.join("result", filename)
+    _filepath = path_to_result(filename)
     nodes: list[UUID] = []
     edges: list[tuple[UUID, UUID]] = []
     uuid_to_ign: dict[str, str] = {}
@@ -81,17 +98,33 @@ def generate_graph_html(nodes: list[UUID], edges: list[tuple[UUID, UUID]], uuid_
 
     for i in nodes:
         _u = str(i)
-        _u = uuid_to_ign.get(_u, _u)
+        _u = get_ign_from_uuid(uuid_to_ign=uuid_to_ign, target=_u)
         nt.add_node(n_id=_u, label=_u,
                     x=random.Random().randint(0, _coord), y=random.Random().randint(0, _coord), size=10)
 
     for i in edges:
         _u0 = str(i[0])
-        _u0 = uuid_to_ign.get(_u0, _u0)
+        _u0 = get_ign_from_uuid(uuid_to_ign=uuid_to_ign, target=_u0)
         _u1 = str(i[1])
-        _u1 = uuid_to_ign.get(_u1, _u1)
+        _u1 = get_ign_from_uuid(uuid_to_ign=uuid_to_ign, target=_u1)
         nt.add_edge(_u0, _u1)
         nt.add_edge(_u1, _u0)
 
     nt.toggle_physics(False)
     nt.show(config.get_item("export_html"), local=True, notebook=False)
+
+
+def path_to_result(filename: str) -> str:
+    return os.path.join("result", filename)
+
+
+def get_ign_from_uuid(uuid_to_ign: dict[str, str], target: str) -> str:
+    return uuid_to_ign.get(target, target)
+
+
+class CrawlerInitOpID:
+    START_FROM_UUID = "1"
+    IMPORT_RESULT = "2"
+
+    def __init__(self):
+        raise NotImplementedError()

@@ -1,15 +1,21 @@
 import logging
 import os
 import json
+from util import set_request_headers, get_request_headers
 
 __all__ = [
     "load_config",
     "get_item",
     "set_item",
     "get_proxies",
-    "get_config_object"
+    "get_config_object",
+    "get_automate",
+    "get_start_spot",
+    "get_import_json",
+    "get_crawling_method",
+    "is_debug",
+    "CrawlerCrawlOpId"
 ]
-
 
 _config_file_name = "config.json"
 
@@ -31,7 +37,7 @@ _default: dict = {
     "crawling_method": "2"
 }
 
-_acceptable = str | int
+_acceptable = str | int | bool
 
 
 def load_config():
@@ -54,11 +60,13 @@ def load_config():
             except KeyError:
                 pass
     logging_pam = {
-        "level": logging.DEBUG if get_item("debug") else logging.INFO,
+        "level": logging.DEBUG if is_debug() else logging.INFO,
         "format": "%(asctime)s [%(levelname)s] [%(filename)s:%(lineno)d] %(message)s"
     }
     logging.basicConfig(**logging_pam)
     logging.debug(_config)
+    set_request_headers(is_debug())
+    logging.debug(get_request_headers())
 
 
 def get_item(key: str) -> _acceptable | None:
@@ -90,3 +98,31 @@ def get_proxies() -> dict:
 
 def get_config_object():
     return _config
+
+
+def get_automate():
+    return get_item("automate")
+
+
+def get_start_spot():
+    return get_item("start_spot")
+
+
+def get_import_json():
+    return get_item("import_json")
+
+
+def is_debug() -> bool:
+    return get_item("debug")
+
+
+def get_crawling_method():
+    return get_item("crawling_method")
+
+
+class CrawlerCrawlOpId:
+    DEPTH_FIRST = "1"
+    BREADTH_FIRST = "2"
+
+    def __init__(self):
+        raise NotImplementedError()

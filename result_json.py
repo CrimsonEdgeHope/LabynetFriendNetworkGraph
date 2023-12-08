@@ -3,22 +3,17 @@ import os
 import inquirer
 import time
 import config
-from crawler import CrawlerInitOpID
-from util import import_result
-
-
-def _result_path(_f):
-    return os.path.join("result", _f)
+from util import import_result, path_to_result, CrawlerInitOpID, get_ign_from_uuid
 
 
 def _validate_import_json(_v):
-    return os.path.exists(_result_path(_v))
+    return os.path.exists(path_to_result(_v))
 
 
 if __name__ == "__main__":
     config.load_config()
-    _import_json = config.get_item("import_json")
-    if config.get_item("automate") != CrawlerInitOpID.IMPORT_RESULT:
+    _import_json = config.get_import_json()
+    if config.get_automate() != CrawlerInitOpID.IMPORT_RESULT:
         _ans = inquirer.prompt([
             inquirer.Text("filename", message="Result file name",
                           default=_import_json,
@@ -29,12 +24,12 @@ if __name__ == "__main__":
         raise ValueError()
 
     nodes, edges, uuid_to_ign = import_result(_import_json)
-    with open(_result_path(_import_json), "r") as f:
+    with open(path_to_result(_import_json), "r") as f:
         _obj = json.loads(f.read())
         _metadata = _obj["metadata"]
-        _leftovers = _obj['leftovers']
-        _error_out = _obj['errored']['error_out']
-        _forbid_out = _obj['errored']['forbid_out']
+        _leftovers = _obj["leftovers"]
+        _error_out = _obj["errored"]["error_out"]
+        _forbid_out = _obj["errored"]["forbid_out"]
 
     len_of_nodes = len(nodes)
     len_of_edges = len(edges)
@@ -64,7 +59,7 @@ Config:
 
     _start_spot = _metadata["config"].get("start_spot", None)
     if _start_spot:
-        _start_spot_name = uuid_to_ign.get(_start_spot, _start_spot)
+        _start_spot_name = get_ign_from_uuid(uuid_to_ign=uuid_to_ign, target=_start_spot)
         print("""Tracking began at the player{pn} with uuid {uuid}""".format(
             pn="" if _start_spot_name == _start_spot else f" named \"{_start_spot_name}\",",
             uuid=_start_spot
