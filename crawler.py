@@ -109,9 +109,9 @@ def _init() -> str | int:
 def _wait(gap: int, last_time: float | int = None):
     if last_time is None:
         last_time = time.time()
-    while True:
-        if time.time() - last_time >= gap:
-            break
+    if time.time() - last_time >= gap:
+        return
+    time.sleep(gap)
 
 
 def _construct_graph_add_node(nodes: list[UUID], obj: UUID):
@@ -120,14 +120,9 @@ def _construct_graph_add_node(nodes: list[UUID], obj: UUID):
 
 
 def _construct_graph_add_edge(edges: list[tuple[UUID, UUID]], source: UUID, to: UUID):
-    _src = str(source)
-    _to = str(to)
-    if _src > _to:
-        _o: tuple = (to, source)
-    else:
-        _o: tuple = (source, to)
-    if edges.count(_o) == 0:
-        edges.append(_o)
+    _obj: tuple[UUID, UUID] = tuple(sorted((source, to)))
+    if edges.count(_obj) == 0:
+        edges.insert(0, _obj)
 
 
 def _construct_graph_fetch_res(delay: int, session: requests.Session, uuid: UUID,
@@ -199,7 +194,7 @@ def _construct_graph_dfs(nodes: list[UUID], edges: list[tuple[UUID, UUID]], uuid
         uuid_to_ign[str(_obj)] = _i["user_name"]
         _construct_graph_dfs(nodes=nodes, edges=edges, uuid_to_ign=uuid_to_ign,
                              forbid_out=forbid_out, error_out=error_out, leftovers=leftovers,
-                             delay=delay, session=session, current=_next, previous=current)
+                             delay=delay, session=session, current=_obj, previous=current)
 
 
 def _construct_graph_bfs(nodes: list[UUID], edges: list[tuple[UUID, UUID]], uuid_to_ign: dict[str, str],
@@ -311,6 +306,7 @@ def run():
     _start_spot = get_start_spot()
     if _start_spot:
         _start_spot = UUID(_start_spot)
+        logging.debug(_start_spot)
     _import_json = get_import_json()
 
     _nodes: list[UUID] = []

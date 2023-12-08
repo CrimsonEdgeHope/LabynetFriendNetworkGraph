@@ -2,7 +2,7 @@ Remove-Item -Recurse -Force -ErrorAction SilentlyContinue config.json
 Set-Content config.json '{
   "maximum_requests": 200,
   "automate": "1",
-  "start_spot": "f88a6873-452f-428e-b138-76f682a3cfb4",
+  "start_spot": "438a3459-9c60-4720-a07f-b36d7f14b84b",
   "debug": true
 }'
 Get-Content config.json
