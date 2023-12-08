@@ -11,7 +11,7 @@ __all__ = [
 ]
 
 
-def result_json_prompt():
+def result_json_prompt(full: bool = True):
     _import_json = config.get_import_json()
     if config.get_automate() != CrawlerInitOpID.IMPORT_RESULT:
         _ans = inquirer.prompt([
@@ -23,7 +23,7 @@ def result_json_prompt():
     elif not _validate_import_json(_import_json):
         raise ValueError("Invalid import_json value.")
 
-    return _import_json, import_result(_import_json, full=True)
+    return _import_json, import_result(_import_json, full=full)
 
 
 def _validate_import_json(_v):

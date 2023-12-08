@@ -18,6 +18,9 @@ for i in $r ; do
   if [ $? -ne 0 ]; then
     echo "Failure at $i"
     mark=false
+  else
+    echo "Attempt to write CQL for $i"
+    python3 result_json_to_neo4j_cql.py "$i"
   fi
 done
 

@@ -1,6 +1,13 @@
+import re
+import sys
 import config
 from result_json import result_json_prompt
-from util import get_ign_from_uuid, path_to_result
+from util import get_ign_from_uuid, path_to_result, import_result
+
+
+__all__ = [
+    "fire"
+]
 
 LABEL_MINECRAFT_PLAYER = "MINECRAFT_PLAYER"
 LABEL_LABY_NET_USER = "LABY_NET_USER"
@@ -12,10 +19,11 @@ def save_cql(filename: str, content: str):
         f.write(content)
 
 
-if __name__ == "__main__":
-    config.load_config()
-
-    import_json, (nodes, edges, uuid_to_ign, leftovers, forbid_out, error_out, metadata) = result_json_prompt()
+def fire(import_json: str = None):
+    if import_json is not None:
+        nodes, edges, uuid_to_ign = import_result(import_json)
+    else:
+        import_json, (nodes, edges, uuid_to_ign) = result_json_prompt(full=False)
 
     create_nodes_cql = []
     for n in nodes:
@@ -39,5 +47,19 @@ if __name__ == "__main__":
 
     create_edges_cql = '\n'.join(create_edges_cql)
 
-    save_cql(path_to_result(f"{import_json}_create_nodes.cql"), create_nodes_cql)
-    save_cql(path_to_result(f"{import_json}_create_edges.cql"), create_edges_cql)
+    if len(nodes) > 0:
+        save_cql(path_to_result(f"{import_json}_create_nodes.cql"), create_nodes_cql)
+    else:
+        return
+    if len(edges) > 0:
+        save_cql(path_to_result(f"{import_json}_create_edges.cql"), create_edges_cql)
+
+
+if __name__ == "__main__":
+    config.load_config()
+    if len(sys.argv) >= 2:
+        for v in sys.argv[1:]:
+            if re.match(r"^[0-9a-zA-Z\_\-]+\.json$", v):
+                fire(v)
+    else:
+        fire()

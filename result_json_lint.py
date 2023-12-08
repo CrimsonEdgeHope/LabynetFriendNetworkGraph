@@ -61,7 +61,8 @@ def fire(import_json: str = None):
 
     logging.warning("""
 <============================>
-<============================>""")
+End of checking {import_json}
+<============================>""".format(import_json=import_json))
 
 
 if __name__ == "__main__":
