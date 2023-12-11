@@ -26,14 +26,14 @@ def save_result(nodes: list[UUID], uuid_to_ign: dict[str, str], edges: list[tupl
             "request_headers": get_request_headers(),
             "config": get_config_object()
         },
-        "leftovers": [str(i) for i in leftovers],
+        "leftovers": list(map(lambda _v: uuid_to_str(_v), leftovers)),
         "errored": {
-            "forbid_out": [str(i) for i in forbid_out],
-            "error_out": [str(i) for i in error_out]
+            "forbid_out": list(map(lambda _v: uuid_to_str(_v), forbid_out)),
+            "error_out": list(map(lambda _v: uuid_to_str(_v), error_out))
         },
         "data": {
-            "nodes": [str(i) for i in nodes],
-            "edges": list(map(lambda _v: (str(_v[0]), str(_v[1])), edges)),
+            "nodes": list(map(lambda _v: uuid_to_str(_v), nodes)),
+            "edges": list(map(lambda _v: (uuid_to_str(_v[0]), uuid_to_str(_v[1])), edges)),
             "uuid_to_ign": {}
         }
     }
@@ -88,15 +88,15 @@ def generate_graph_html(nodes: list[UUID], edges: list[tuple[UUID, UUID]], uuid_
     _coord = len(uuid_to_ign) * 10
 
     for i in nodes:
-        _u = str(i)
+        _u = uuid_to_str(i)
         _u = get_ign_from_uuid(uuid_to_ign=uuid_to_ign, target=_u)
         nt.add_node(n_id=_u, label=_u,
                     x=random.Random().randint(0, _coord), y=random.Random().randint(0, _coord), size=10)
 
     for i in edges:
-        _u0 = str(i[0])
+        _u0 = uuid_to_str(i[0])
         _u0 = get_ign_from_uuid(uuid_to_ign=uuid_to_ign, target=_u0)
-        _u1 = str(i[1])
+        _u1 = uuid_to_str(i[1])
         _u1 = get_ign_from_uuid(uuid_to_ign=uuid_to_ign, target=_u1)
         nt.add_edge(_u0, _u1)
         nt.add_edge(_u1, _u0)

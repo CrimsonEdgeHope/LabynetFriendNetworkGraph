@@ -17,8 +17,7 @@ from config import (get_item,
                     get_import_json,
                     set_item,
                     CrawlerCrawlOpId)
-from util import save_result, import_result, generate_graph_html, path_to_result, CrawlerInitOpID
-
+from util import save_result, import_result, generate_graph_html, path_to_result, CrawlerInitOpID, uuid_to_str
 
 __all__ = [
     "run"
@@ -144,7 +143,7 @@ def _construct_graph_fetch_res(delay: int, session: requests.Session, uuid: UUID
             if _status_t != 200:
                 if _status_t == 403:
                     logging.error("Remote host returned 403 FORBIDDEN: 1. Blocked by Cloudflare. 2. {} hides "
-                                  "friend list".format(str(_current)))
+                                  "friend list".format(uuid_to_str(_current)))
                     _res_t = []
                     forbid_out.append(_current)
                 if _status_t >= 500:
@@ -189,9 +188,10 @@ def _construct_graph_dfs(nodes: list[UUID], edges: list[tuple[UUID, UUID]], uuid
     for _i in _res:
         _next = _i["uuid"]
         _obj = UUID(_next)
-        if _has_prev and str(_obj) == str(previous):
+        _obj_str = uuid_to_str(_obj)
+        if _has_prev and _obj_str == uuid_to_str(previous):
             continue
-        uuid_to_ign[str(_obj)] = _i["user_name"]
+        uuid_to_ign[_obj_str] = _i["user_name"]
         _construct_graph_dfs(nodes=nodes, edges=edges, uuid_to_ign=uuid_to_ign,
                              forbid_out=forbid_out, error_out=error_out, leftovers=leftovers,
                              delay=delay, session=session, current=_obj, previous=current)
@@ -223,7 +223,7 @@ def _construct_graph_bfs(nodes: list[UUID], edges: list[tuple[UUID, UUID]], uuid
         for _i in _res:
             _next = _i["uuid"]
             _obj = UUID(_next)
-            uuid_to_ign[str(_obj)] = _i["user_name"]
+            uuid_to_ign[uuid_to_str(_obj)] = _i["user_name"]
             _construct_graph_add_edge(edges=edges, source=_obj, to=_current)
             _queue.append(_obj)
 
@@ -287,7 +287,7 @@ def _run(nodes: list[UUID], edges: list[tuple[UUID, UUID]], uuid_to_ign: dict[st
             raise ValueError("There's nothing.")
 
         _status, _res = _make_request_to_laby(delay=delay, session=session, uuid=_uuid, mode="profile")
-        _s = str(_uuid)
+        _s = uuid_to_str(_uuid)
         if _status == 200:
             uuid_to_ign[_s] = _res["username"]
         else:
