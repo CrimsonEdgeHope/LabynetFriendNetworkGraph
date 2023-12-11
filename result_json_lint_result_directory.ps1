@@ -9,10 +9,11 @@ $mark = $true
 foreach ($item in $jsonitems) {
     python .\result_json_lint.py  $item.Name
     if ($? -ne $true) {
-        Write-Output "Failure at $item.Name"
+        Write-Output "Failure at $item"
         $mark = $false
     } else {
-        Write-Output "Attempt to write CQL for $item.Name"
+        python .\result_json.py  $item.Name
+        Write-Output "Attempt to write CQL for $item"
         python .\result_json_to_neo4j_cql.py  $item.Name
     }
 }

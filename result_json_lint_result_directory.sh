@@ -19,6 +19,7 @@ for i in $r ; do
     echo "Failure at $i"
     mark=false
   else
+    python3 result_json.py "$i"
     echo "Attempt to write CQL for $i"
     python3 result_json_to_neo4j_cql.py "$i"
   fi
