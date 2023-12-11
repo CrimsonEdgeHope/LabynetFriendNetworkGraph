@@ -4,6 +4,7 @@ __all__ = [
     "generate_graph_html",
     "path_to_result",
     "get_ign_from_uuid",
+    "uuid_to_str",
     "CrawlerInitOpID"
 ]
 
@@ -111,6 +112,13 @@ def path_to_result(filename: str) -> str:
 def get_ign_from_uuid(uuid_to_ign: dict[str, str], target: str | UUID) -> str:
     _target = str(target)
     return uuid_to_ign.get(_target, _target)
+
+
+def uuid_to_str(uuid: UUID, no_dash=False):
+    _r = str(uuid)
+    if no_dash:
+        _r = _r.replace("-", "")
+    return _r
 
 
 class CrawlerInitOpID:

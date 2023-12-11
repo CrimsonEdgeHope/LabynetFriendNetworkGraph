@@ -2,8 +2,7 @@ import re
 import sys
 import config
 from result_json import result_json_prompt
-from util import get_ign_from_uuid, path_to_result, import_result
-
+from util import get_ign_from_uuid, path_to_result, import_result, uuid_to_str
 
 __all__ = [
     "fire"
@@ -27,32 +26,23 @@ def fire(import_json: str = None):
 
     create_nodes_cql = []
     for n in nodes:
-        create_nodes_cql.append("(:{label_mcp}:{label_lnu} {node_cql})".format(
+        create_nodes_cql.append("CREATE (mc{uuid_no_dash}:{label_mcp}:{label_lnu} {node_cql})".format(
             label_mcp=LABEL_MINECRAFT_PLAYER, label_lnu=LABEL_LABY_NET_USER,
+            uuid_no_dash=uuid_to_str(n, no_dash=True),
             node_cql="{" + "name: \"{name}\", uuid: \"{uuid}\"".format(
-                name=get_ign_from_uuid(uuid_to_ign=uuid_to_ign, target=n), uuid=str(n)) + "}"))
-    create_nodes_cql = "CREATE {0}".format(",".join(create_nodes_cql))
+                name=get_ign_from_uuid(uuid_to_ign=uuid_to_ign, target=n), uuid=uuid_to_str(n)) + "}"))
 
+    create_nodes_cql = '\n'.join(create_nodes_cql)
     create_edges_cql = []
     for i, e in enumerate(edges):
-        create_edges_cql.insert(0,
-                                "MATCH (from{fi}:{label_lnu}), (to{ti}:{label_lnu}) "
-                                "WHERE from{fi}.uuid=\"{from_uuid}\" AND to{ti}.uuid=\"{to_uuid}\""
-                                .format(fi=i, ti=i,
-                                        label_lnu=LABEL_LABY_NET_USER,
-                                        from_uuid=e[0], to_uuid=e[1]))
-        create_edges_cql.append("CREATE (from{fi})-[:{relation_laf}]->(to{ti})".format(
-            fi=i, ti=i, relation_laf=EDGE_RELATION_LABY_FRIEND
+        create_edges_cql.append("CREATE (mc{from_uuid_no_dash})-[:{relation_laf}]->(mc{to_uuid_no_dash})".format(
+            relation_laf=EDGE_RELATION_LABY_FRIEND, from_uuid_no_dash=uuid_to_str(e[0], no_dash=True),
+            to_uuid_no_dash=uuid_to_str(e[1], no_dash=True)
         ))
 
     create_edges_cql = '\n'.join(create_edges_cql)
 
-    if len(nodes) > 0:
-        save_cql(path_to_result(f"{import_json}_create_nodes.cql"), create_nodes_cql)
-    else:
-        return
-    if len(edges) > 0:
-        save_cql(path_to_result(f"{import_json}_create_edges.cql"), create_edges_cql)
+    save_cql(path_to_result(f"{import_json}.cql"), create_nodes_cql + "\n" + create_edges_cql)
 
 
 if __name__ == "__main__":
