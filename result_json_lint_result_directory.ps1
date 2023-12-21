@@ -1,6 +1,5 @@
 if (-Not $(Test-Path -Path "result")) {
-    Write-Output "Where's result directory?"
-    exit 1
+    throw "Where's result directory?"
 }
 
 Get-ChildItem -Path "result\*.json" -OutVariable jsonitems
@@ -9,7 +8,7 @@ $mark = $true
 foreach ($item in $jsonitems) {
     python .\result_json_lint.py  $item.Name
     if ($? -ne $true) {
-        Write-Output "Failure at $item"
+        Write-Error "Failure at $item"
         $mark = $false
     } else {
         python .\result_json.py  $item.Name
@@ -18,6 +17,6 @@ foreach ($item in $jsonitems) {
     }
 }
 if (-Not $mark) {
-    Write-Output "Check unsuccessful."
+    Write-Error "Check unsuccessful."
     exit 1
 }

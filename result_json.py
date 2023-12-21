@@ -1,3 +1,4 @@
+import logging
 import os
 import re
 import sys
@@ -46,7 +47,7 @@ def fire(import_json: str = None):
 
     print("""
 <============================>
-{import_json}
+Summarization of {import_json}
 <============================>""".format(import_json=import_json))
 
     print("""{import_json} was created at {created_at_unix} UTC
@@ -62,10 +63,11 @@ Config:
                    config_object=metadata["config"]))
 
     if len_of_nodes <= 0:
+        logging.warning("Nothing to summarize, abort...")
         exit(0)
 
     print(
-        """According to this copy of result, the crawler tracked {len_of_nodes} Minecraft player{_s} that have registered on laby.net.""".format(
+        """According to this copy of result, the crawler tracked {len_of_nodes} Minecraft player{_s} that have been registered on laby.net.""".format(
             len_of_nodes=len_of_nodes, _s="" if len_of_nodes == 1 else "s"))
 
     _start_spot = metadata["config"].get("start_spot", None)
@@ -101,7 +103,7 @@ Config:
             _s=" is" if len_of_leftovers == 1 else "s are"
         ))
 
-    print("""
+    logging.warning("""
 <============================>
 End of summarizing {import_json}
 <============================>""".format(import_json=import_json))

@@ -42,22 +42,22 @@ def fire(import_json: str = None):
 
     logging.warning("""
 <============================>
-{import_json}
+Checking {import_json}
 <============================>
     """.format(import_json=import_json))
 
     logging.info(metadata)
 
     if not check_duplicates(nodes, "Nodes"):
-        logging.error("FAILURE AT Nodes")
+        logging.error("Failure at Nodes")
     if not check_duplicates(edges, "Edges"):
-        logging.error("FAILURE AT Edges")
+        logging.error("Failure at Edges")
     if not check_duplicates(leftovers, "Leftovers"):
-        logging.error("FAILURE AT Leftovers")
+        logging.error("Failure at Leftovers")
     if not check_duplicates(forbid_out, "FORBID_OUT"):
-        logging.error("FAILURE AT FORBID_OUT")
+        logging.error("Failure at FORBID_OUT")
     if not check_duplicates(error_out, "ERROR_OUT"):
-        logging.error("FAILURE AT ERROR_OUT")
+        logging.error("Failure at ERROR_OUT")
 
     logging.warning("""
 <============================>
