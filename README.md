@@ -2,6 +2,11 @@
 
 A script that helps you fetch and analyse a whole friendship relations of a community of people from `laby.net`
 
+After the script finishes job, a json file that contains all fetched data will be saved to `result` directory, which is useful for graph generation and data analysis.
+In addition, there are some helpful scripts providing summarization, and CQL query generation suitable for Neo4j.
+
+## Usage
+
 Prerequisites:
 
 - Python 3.10
@@ -13,9 +18,11 @@ pip install -r requirements.txt
 python LabynetFriendNetworkGraph.py
 ```
 
-After the script finishes job, a json file that contains all fetched data will be saved to `result` directory, which is useful for graph generation and data analysis.
+Follow prompts, tell the script the place to start from, then sit and have a cup of Java.
 
 ## Config
+
+Create `config.json` in project's root directory:
 
 | Key              | Description                                    |
 |------------------|------------------------------------------------|
@@ -40,4 +47,4 @@ Licensed under WTFPL
 
 ## Reference
 
-- [Laby.net API documentation](https://laby.net/api/docs)
+- [Laby.net API documentation](https://web.archive.org/web/20211001164932/https://laby.net/api/docs)
