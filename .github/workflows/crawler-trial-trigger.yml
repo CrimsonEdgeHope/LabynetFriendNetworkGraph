@@ -30,7 +30,7 @@ jobs:
       fail-fast: false
       matrix:
         crawling-method: [ "1", "2" ]
-    uses: CrimsonEdgeHope/LabynetFriendNetworkGraph/.github/workflows/crawler-trial-workflow.yml@master
+    uses: ./.github/workflows/crawler-trial-workflow.yml
     with:
       maximum-requests: 10
       crawling-method: ${{ matrix.crawling-method }}
@@ -38,8 +38,8 @@ jobs:
 
   manual-trial:
     if: ${{ github.event_name == 'workflow_dispatch' }}
-    uses: CrimsonEdgeHope/LabynetFriendNetworkGraph/.github/workflows/crawler-trial-workflow.yml@master
+    uses: ./.github/workflows/crawler-trial-workflow.yml
     with:
-      maximum-requests: ${{ github.event.inputs.maximum-requests }}
-      crawling-method: ${{ github.event.inputs.crawling-method }}
-      start-spot: ${{ github.event.inputs.start-spot }}
+      maximum-requests: ${{ inputs.maximum-requests }}
+      crawling-method: ${{ inputs.crawling-method }}
+      start-spot: ${{ inputs.start-spot }}
