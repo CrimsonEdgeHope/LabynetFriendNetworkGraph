@@ -1,0 +1,68 @@
+name: Automated Trial
+on:
+  workflow_call:
+    inputs:
+      maximum-requests:
+        type: number
+        required: true
+        description: Maximum requests
+        default: 200
+      crawling-method:
+        type: string
+        required: true
+        description: Crawling method
+        default: "1"
+      start-spot:
+        type: string
+        required: true
+        description: Start spot (UUID)
+        default: "7659cedb-c9c1-4f28-b966-19823fd8666b"
+
+
+jobs:
+  trial:
+    name: Crawler Trial on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 180
+    strategy:
+      max-parallel: 2
+      fail-fast: false
+      matrix:
+        os: [ windows-2022, ubuntu-22.04 ]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+          cache: 'pip'
+      - name: Python package
+        run: pip install -r requirements.txt
+      - name: Run script (Windows)
+        if: ${{ matrix.os == 'windows-2022' }}
+        run: powershell -NoLogo -File automated-trial.ps1 -MaximumRequests ${{ github.event.inputs.maximum-requests }} -StartSpot ${{ github.event.inputs.start-spot }} -CrawlingMethod ${{ github.event.inputs.crawling-method }} -CrawlerDebug
+        shell: cmd
+      - name: Run script (Ubuntu)
+        if: ${{ matrix.os == 'ubuntu-22.04' }}
+        run: ./automated-trial.sh --maximum-requests ${{ github.event.inputs.maximum-requests }} --start-spot ${{ github.event.inputs.start-spot }} --crawling-method ${{ github.event.inputs.crawling-method }} --crawler-debug
+        shell: bash
+      - name: Check result and generate CQL (Windows)
+        if: ${{ matrix.os == 'windows-2022' }}
+        run: powershell -NoLogo -File result_json_lint_result_directory.ps1
+        shell: cmd
+      - name: Check result and generate CQL (Ubuntu)
+        if: ${{ matrix.os == 'ubuntu-22.04' }}
+        run: ./result_json_lint_result_directory.sh
+        shell: bash
+      - name: Artifacts
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v3
+        with:
+          name: Result (${{ matrix.os }}) (${{ github.run_id }} - ${{ github.run_number }})
+          path: |
+            config.json
+            lib/
+            result/
+            graph.html
+          retention-days: 30
