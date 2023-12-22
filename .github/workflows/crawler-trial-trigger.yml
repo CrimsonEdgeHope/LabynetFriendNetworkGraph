@@ -1,0 +1,45 @@
+on:
+  pull_request:
+    paths:
+      - "crawler.py"
+      - ".github/workflows/**/*.yml"
+  workflow_dispatch:
+    inputs:
+      maximum-requests:
+        type: number
+        required: true
+        description: Maximum requests
+        default: 200
+      crawling-method:
+        type: string
+        required: true
+        description: Crawling method
+        default: "1"
+      start-spot:
+        type: string
+        required: true
+        description: Start spot (UUID)
+        default: "7659cedb-c9c1-4f28-b966-19823fd8666b"
+
+
+jobs:
+  trial-on-pr:
+    if: ${{ github.event_name == 'pull_request' }}
+    strategy:
+      max-parallel: 2
+      fail-fast: false
+      matrix:
+        crawling-method: [ "1", "2" ]
+    uses: CrimsonEdgeHope/LabynetFriendNetworkGraph/.github/workflows/crawler-trial-workflow.yml@master
+    with:
+      maximum-requests: 10
+      crawling-method: ${{ matrix.crawling-method }}
+      start-spot: "7659cedb-c9c1-4f28-b966-19823fd8666b"
+
+  manual-trial:
+    if: ${{ github.event_name == 'workflow_dispatch' }}
+    uses: CrimsonEdgeHope/LabynetFriendNetworkGraph/.github/workflows/crawler-trial-workflow.yml@master
+    with:
+      maximum-requests: ${{ github.event.inputs.maximum-requests }}
+      crawling-method: ${{ github.event.inputs.crawling-method }}
+      start-spot: ${{ github.event.inputs.start-spot }}
