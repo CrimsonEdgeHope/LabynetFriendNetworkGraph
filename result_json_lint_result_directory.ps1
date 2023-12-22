@@ -11,7 +11,7 @@ foreach ($item in $jsonitems) {
         Write-Error "Failure at $item"
         $mark = $false
     } else {
-        python .\result_json.py  $item.Name
+        python .\result_json_summarization.py  $item.Name
         Write-Output "Attempt to write CQL for $item"
         python .\result_json_to_neo4j_cql.py  $item.Name
     }

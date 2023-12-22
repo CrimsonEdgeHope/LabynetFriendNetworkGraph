@@ -1,4 +1,3 @@
-import logging
 import os
 import re
 import sys
@@ -63,7 +62,7 @@ Config:
                    config_object=metadata["config"]))
 
     if len_of_nodes <= 0:
-        logging.warning("Nothing to summarize, abort...")
+        print("Nothing to summarize, abort...")
         exit(0)
 
     print(
@@ -103,7 +102,7 @@ Config:
             _s=" is" if len_of_leftovers == 1 else "s are"
         ))
 
-    logging.warning("""
+    print("""
 <============================>
 End of summarizing {import_json}
 <============================>""".format(import_json=import_json))

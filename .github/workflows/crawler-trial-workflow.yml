@@ -41,11 +41,11 @@ jobs:
         run: pip install -r requirements.txt
       - name: Run script (Windows)
         if: ${{ matrix.os == 'windows-2022' }}
-        run: powershell -NoLogo -File automated-trial.ps1 -MaximumRequests ${{ github.event.inputs.maximum-requests }} -StartSpot ${{ github.event.inputs.start-spot }} -CrawlingMethod ${{ github.event.inputs.crawling-method }} -CrawlerDebug
+        run: powershell -NoLogo -File automated-trial.ps1 -MaximumRequests ${{ inputs.maximum-requests }} -StartSpot ${{ inputs.start-spot }} -CrawlingMethod ${{ inputs.crawling-method }} -CrawlerDebug
         shell: cmd
       - name: Run script (Ubuntu)
         if: ${{ matrix.os == 'ubuntu-22.04' }}
-        run: ./automated-trial.sh --maximum-requests ${{ github.event.inputs.maximum-requests }} --start-spot ${{ github.event.inputs.start-spot }} --crawling-method ${{ github.event.inputs.crawling-method }} --crawler-debug
+        run: ./automated-trial.sh --maximum-requests ${{ inputs.maximum-requests }} --start-spot ${{ inputs.start-spot }} --crawling-method ${{ inputs.crawling-method }} --crawler-debug
         shell: bash
       - name: Check result and generate CQL (Windows)
         if: ${{ matrix.os == 'windows-2022' }}

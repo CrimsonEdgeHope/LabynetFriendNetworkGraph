@@ -1,7 +1,7 @@
 import re
 import sys
 import config
-from result_json import result_json_prompt
+from result_json_summarization import result_json_prompt
 from util import get_ign_from_uuid, path_to_result, import_result, uuid_to_str
 
 __all__ = [

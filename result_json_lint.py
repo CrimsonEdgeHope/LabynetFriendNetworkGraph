@@ -4,7 +4,7 @@ import sys
 from typing import Any
 from util import import_result
 import config
-from result_json import result_json_prompt
+from result_json_summarization import result_json_prompt
 
 
 __all__ = [
