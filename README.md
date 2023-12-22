@@ -5,6 +5,9 @@ A script that helps you fetch and analyse a whole friendship relations of a comm
 After the script finishes job, a json file that contains all fetched data will be saved to `result` directory, which is useful for graph generation and data analysis.
 In addition, there are some helpful scripts providing summarization, and CQL query generation suitable for Neo4j.
 
+![](https://assets.app.crimsonedgehope.warpedinnether.top:65499/LabynetFriendNetworkGraph-1.png)
+![](https://assets.app.crimsonedgehope.warpedinnether.top:65499/LabynetFriendNetworkGraph-2.png)
+
 ## Usage
 
 Prerequisites:

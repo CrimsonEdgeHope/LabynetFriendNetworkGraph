@@ -3,10 +3,10 @@ on:
   workflow_call:
     inputs:
       maximum-requests:
-        type: number
+        type: string
         required: true
         description: Maximum requests
-        default: 200
+        default: "200"
       crawling-method:
         type: string
         required: true

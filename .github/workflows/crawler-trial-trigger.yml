@@ -1,4 +1,7 @@
 on:
+  push:
+    paths:
+      - "crawler.py"
   pull_request:
     paths:
       - "crawler.py"
@@ -6,10 +9,10 @@ on:
   workflow_dispatch:
     inputs:
       maximum-requests:
-        type: number
+        type: string
         required: true
         description: Maximum requests
-        default: 200
+        default: "200"
       crawling-method:
         type: string
         required: true
@@ -26,15 +29,28 @@ jobs:
   trial-on-pr:
     if: ${{ github.event_name == 'pull_request' }}
     strategy:
-      max-parallel: 2
+      max-parallel: 1
       fail-fast: false
       matrix:
         crawling-method: [ "1", "2" ]
     uses: ./.github/workflows/crawler-trial-workflow.yml
     with:
-      maximum-requests: 10
+      maximum-requests: "5"
       crawling-method: ${{ matrix.crawling-method }}
       start-spot: "7659cedb-c9c1-4f28-b966-19823fd8666b"
+
+  trial-on-push:
+    if: ${{ github.event_name == 'push' }}
+    strategy:
+      max-parallel: 1
+      fail-fast: false
+      matrix:
+        crawling-method: [ "1", "2" ]
+    uses: ./.github/workflows/crawler-trial-workflow.yml
+    with:
+      maximum-requests: "50"
+      crawling-method: ${{ matrix.crawling-method }}
+      start-spot: "22500b81-e889-4367-b83c-24c52914e2de"
 
   manual-trial:
     if: ${{ github.event_name == 'workflow_dispatch' }}
