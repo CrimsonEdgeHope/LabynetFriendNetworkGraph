@@ -137,7 +137,7 @@ def set_request_headers(debug: bool):
     _request_headers = {
         "host": "laby.net",
         "user-agent":
-            "Mozilla/5.0 (compatible; LabynetFriendNetworkGraph/beta-0.1.2; +https://github.com/CrimsonEdgeHope)"
+            "Mozilla/5.0 (compatible; LabynetFriendNetworkGraph/beta-0.1.3; +https://github.com/CrimsonEdgeHope)"
             if not debug
             else "Mozilla/5.0 (compatible; LabynetFriendNetworkGraph/beta-dev; +https://github.com/CrimsonEdgeHope)",
         "accept": "*/*"
