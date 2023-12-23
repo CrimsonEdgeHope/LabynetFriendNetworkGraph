@@ -1,0 +1,38 @@
+name: Tag version
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        type: string
+        required: true
+        description: Tag
+
+
+permissions:
+  contents: write
+
+
+jobs:
+  tag:
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: dotenv
+        run: |
+          echo SCRIPT_VERSION_DECLARATION="${{ inputs.tag }}" > .env
+          echo SCRIPT_CONTACT_DECLARATION="https://github.com/${{ github.repository_owner }}" >> .env
+          cat .env
+          rm -rf config.json
+        shell: bash
+      - name: Commit
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: Tag version ${{ inputs.tag }} (${{ github.run_id }})
+          file_pattern: "./.env"
+          add_options: "--all"
+          skip_checkout: true
+          skip_fetch: true
+          disable_globbing: true
+          tagging_message: ${{ inputs.tag }}
+          commit_author: "github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>"

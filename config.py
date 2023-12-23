@@ -22,6 +22,7 @@ import os
 import json
 from types import UnionType
 from typing import Type
+import dotenv
 
 _config_file_name = "config.json"
 _acceptable_type = str | int | bool | dict | None
@@ -190,12 +191,21 @@ _request_headers = {}
 
 def set_request_headers(debug: bool):
     global _request_headers
+
+    _envs = dotenv.dotenv_values(".env")
+    logging.debug(_envs)
+
     _request_headers = {
         "host": "laby.net",
         "user-agent":
-            "Mozilla/5.0 (compatible; LabynetFriendNetworkGraph/beta-0.1.3; +https://github.com/CrimsonEdgeHope)"
+            "Mozilla/5.0 (compatible; LabynetFriendNetworkGraph/{script_version_declaration}; +{script_contact_declaration})".format(
+                script_version_declaration=_envs["SCRIPT_VERSION_DECLARATION"],
+                script_contact_declaration=_envs["SCRIPT_CONTACT_DECLARATION"]
+            )
             if not debug
-            else "Mozilla/5.0 (compatible; LabynetFriendNetworkGraph/beta-dev; +https://github.com/CrimsonEdgeHope)",
+            else "Mozilla/5.0 (compatible; LabynetFriendNetworkGraph/beta-dev; +{script_contact_declaration})".format(
+                script_contact_declaration=_envs["SCRIPT_CONTACT_DECLARATION"]
+            ),
         "accept": "*/*"
     }
 

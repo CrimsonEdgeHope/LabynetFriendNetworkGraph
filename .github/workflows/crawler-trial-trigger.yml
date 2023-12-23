@@ -5,6 +5,7 @@ on:
     paths:
       - "crawler.py"
       - ".github/workflows/**/*.yml"
+      - "!.github/workflows/**/tag-version.yml"
 
 
 jobs:
