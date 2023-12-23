@@ -1,11 +1,6 @@
 import config
-import crawler
-
-
-def init():
-    config.load_config()
-
 
 if __name__ == "__main__":
-    init()
+    config.load_config()
+    import crawler
     crawler.run()

@@ -5,7 +5,7 @@ __all__ = [
     "path_to_result",
     "get_ign_from_uuid",
     "uuid_to_str",
-    "CrawlerInitOpID"
+    "validate_import_json"
 ]
 
 import json
@@ -24,7 +24,7 @@ def save_result(nodes: list[UUID], uuid_to_ign: dict[str, str], edges: list[tupl
         "metadata": {
             "created_at_unix": time.time(),
             "request_headers": get_request_headers(),
-            "config": get_config_object()
+            "config": get_config_object(serialized=True)
         },
         "leftovers": list(map(lambda _v: uuid_to_str(_v), leftovers)),
         "errored": {
@@ -81,8 +81,8 @@ def import_result(filename: str, full: bool = False):
 def generate_graph_html(nodes: list[UUID], edges: list[tuple[UUID, UUID]], uuid_to_ign: dict[str, str]):
     nt = Network(filter_menu=True,
                  select_menu=True,
-                 height="{}px".format(get_item("export_height")),
-                 width="{}px".format(get_item("export_width")),
+                 height="{}px".format(get_item("static_html_export", "graph_height").value),
+                 width="{}px".format(get_item("static_html_export", "graph_width").value),
                  neighborhood_highlight=True,
                  cdn_resources="remote")
     _coord = len(uuid_to_ign) * 10
@@ -102,7 +102,7 @@ def generate_graph_html(nodes: list[UUID], edges: list[tuple[UUID, UUID]], uuid_
         nt.add_edge(_u1, _u0)
 
     nt.toggle_physics(False)
-    nt.show(get_item("export_html"), local=True, notebook=False)
+    nt.show(get_item("static_html_export", "html").value, local=True, notebook=False)
 
 
 def path_to_result(filename: str) -> str:
@@ -121,9 +121,7 @@ def uuid_to_str(uuid: UUID, no_dash=False):
     return _r
 
 
-class CrawlerInitOpID:
-    START_FROM_UUID = "1"
-    IMPORT_RESULT = "2"
-
-    def __init__(self):
-        raise NotImplementedError()
+def validate_import_json(filename: str) -> bool:
+    if filename is None:
+        return False
+    return os.path.exists(path_to_result(filename))
