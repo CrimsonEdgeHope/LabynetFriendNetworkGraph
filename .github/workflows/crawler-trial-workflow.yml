@@ -1,6 +1,23 @@
-name: Automated Trial
+name: Crawler trial workflow
 on:
   workflow_call:
+    inputs:
+      maximum-requests:
+        type: string
+        required: true
+        description: Maximum requests
+        default: "200"
+      crawling-method:
+        type: string
+        required: true
+        description: Crawling method
+        default: "1"
+      start-spot:
+        type: string
+        required: true
+        description: Start spot (UUID)
+        default: "7659cedb-c9c1-4f28-b966-19823fd8666b"
+  workflow_dispatch:
     inputs:
       maximum-requests:
         type: string

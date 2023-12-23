@@ -5,6 +5,8 @@ A script that helps you fetch and analyse a whole friendship relations of a comm
 After the script finishes job, a json file that contains all fetched data will be saved to `result` directory, which is useful for graph generation and data analysis.
 In addition, there are some helpful scripts providing summarization, and CQL query generation suitable for Neo4j.
 
+## Gallery
+
 Result json and CQL:
 
 ![](https://assets.app.crimsonedgehope.warpedinnether.top:65499/LabynetFriendNetworkGraph-2.png)
@@ -28,28 +30,54 @@ python LabynetFriendNetworkGraph.py
 
 Follow prompts, tell the script the place to start from, then sit and have a cup of Java.
 
-## Config
+### Config
 
-Create `config.json` in project's root directory:
+Create `config.json` in project's root directory. (json5 allows comments while json does not.)
 
-| Key              | Description                                    |
-|------------------|------------------------------------------------|
-| http_proxy       | A http proxy                                   |
-| https_proxy      | A https proxy                                  |
-| maximum_requests | How many requests can be sent in total at most |
-
-
-Example:
-
-```json
+```json5
 {
-    "http_proxy": "socks5://127.0.0.1:1080",
-    "https_proxy": "socks5://127.0.0.1:1080",
-    "maximum_requests": 5
+  "debug": false,  // Enable debugging message
+  "proxy": {
+    "http_proxy": "",   // HTTP proxy
+    "https_proxy": ""   // HTTPS proxy
+  },
+  "automate": null,     // Run script without interactive prompts. "1" to start crawling, "2" to import a copy of result json.
+  "import_json": null,  // A copy of result json in result directory to be imported. Only filename, no path. Used as default value.
+  "crawler": {
+    "crawling_method": "2",  // "1": Depth-first crawling. "2": Breadth-first crawling.
+    "maximum_requests": 10,  // How many requests can the crawler send to laby.net, including failures.
+    "start_spot": null       // A Minecraft player's UUID to start from. Used as default value.
+  },
+  "static_html_export": {
+    "html": "graph.html",   // Filename of static html file that shows a graph.
+    "graph_width": 1920,    // Width in px
+    "graph_height": 1080    // Height in px
+  }
 }
 ```
 
-Advanced config keys hidden in `config.py`
+Example config:
+```json
+{
+  "debug": true,
+  "proxy": {
+    "http_proxy": "",
+    "https_proxy": ""
+  },
+  "import_json": null,
+  "automate": "1",
+  "crawler": {
+    "crawling_method": "2",
+    "maximum_requests": 10,
+    "start_spot": "7659cedb-c9c1-4f28-b966-19823fd8666b"
+  },
+  "static_html_export": {
+    "html": "graph.html",
+    "graph_width": 1920,
+    "graph_height": 1080
+  }
+}
+```
 
 ## License
 

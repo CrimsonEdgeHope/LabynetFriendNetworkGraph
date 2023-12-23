@@ -54,11 +54,13 @@ fi
 
 read -d '' configJson << EOF
 {
-  "maximum_requests": $arg_maximum_requests,
-  "crawling_method": "$arg_crawling_method",
   "automate": "1",
-  "start_spot": "$arg_start_spot",
-  "debug": $arg_crawler_debug
+  "debug": $arg_crawler_debug,
+  "crawler": {
+    "maximum_requests": $arg_maximum_requests,
+    "crawling_method": "$arg_crawling_method",
+    "start_spot": "$arg_start_spot"
+  }
 }
 EOF
 

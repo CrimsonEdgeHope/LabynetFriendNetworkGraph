@@ -1,10 +1,10 @@
-import os
 import re
 import sys
-import inquirer
 import time
+import inquirer
 import config
-from util import import_result, path_to_result, CrawlerInitOpID, get_ign_from_uuid
+from config import AUTOMATION_IMPORT_RESULT
+from util import import_result, get_ign_from_uuid, validate_import_json
 
 __all__ = [
     "result_json_prompt",
@@ -14,21 +14,17 @@ __all__ = [
 
 def result_json_prompt(full: bool = True):
     _import_json = config.get_import_json()
-    if config.get_automate() != CrawlerInitOpID.IMPORT_RESULT:
+    if config.get_automation_id() != AUTOMATION_IMPORT_RESULT:
         _ans = inquirer.prompt([
             inquirer.Text("filename", message="Result file name",
                           default=_import_json,
-                          validate=lambda _prevans, _v: _validate_import_json(_v))
+                          validate=lambda _prevans, _v: validate_import_json(_v))
         ])
         _import_json = _ans["filename"]
-    elif not _validate_import_json(_import_json):
+    elif not validate_import_json(_import_json):
         raise ValueError("Invalid import_json value.")
 
     return _import_json, import_result(_import_json, full=full)
-
-
-def _validate_import_json(_v):
-    return os.path.exists(path_to_result(_v))
 
 
 def fire(import_json: str = None):
@@ -69,7 +65,7 @@ Config:
         """According to this copy of result, the crawler tracked {len_of_nodes} Minecraft player{_s} that have been registered on laby.net.""".format(
             len_of_nodes=len_of_nodes, _s="" if len_of_nodes == 1 else "s"))
 
-    _start_spot = metadata["config"].get("start_spot", None)
+    _start_spot = metadata["config"]["crawler"].get("start_spot", None)
     if _start_spot:
         _start_spot_name = get_ign_from_uuid(uuid_to_ign=uuid_to_ign, target=_start_spot)
         print("""Tracking began at the player{pn} with uuid {uuid}""".format(
