@@ -9,11 +9,13 @@ param(
 $CrawlerDebugStr = $CrawlerDebug.ToString().ToLower()
 
 $configJson = "{
-  `"maximum_requests`": $MaximumRequests,
   `"automate`": `"1`",
-  `"crawling_method`": `"$CrawlingMethod`",
-  `"start_spot`": `"$StartSpot`",
-  `"debug`": $CrawlerDebugStr
+  `"debug`": $CrawlerDebugStr,
+  `"crawler`": {
+    `"maximum_requests`": $MaximumRequests,
+    `"crawling_method`": `"$CrawlingMethod`",
+    `"start_spot`": `"$StartSpot`"
+  },
 }
 "
 

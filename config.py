@@ -94,8 +94,8 @@ def load_config():
         "http_proxy": ConfigItem("http_proxy", "", str | None),
         "https_proxy": ConfigItem("https_proxy", "", str | None)
     }, dict)
-    _config_obj["import_json"] = ConfigItem("import_json", None, str | None)
     _config_obj["automate"] = ConfigItem("automate", None, str | None)
+    _config_obj["import_json"] = ConfigItem("import_json", None, str | None)
     _config_obj["crawler"] = ConfigItem("crawler", {
         "crawling_method": ConfigItem("crawling_method", "2", str),
         "maximum_requests": ConfigItem("maximum_requests", 10, int),
