@@ -65,7 +65,7 @@ Config:
         """According to this copy of result, the crawler tracked {len_of_nodes} Minecraft player{_s} that have been registered on laby.net.""".format(
             len_of_nodes=len_of_nodes, _s="" if len_of_nodes == 1 else "s"))
 
-    _start_spot = metadata["config"].get("start_spot", None)
+    _start_spot = metadata["config"]["crawler"].get("start_spot", None)
     if _start_spot:
         _start_spot_name = get_ign_from_uuid(uuid_to_ign=uuid_to_ign, target=_start_spot)
         print("""Tracking began at the player{pn} with uuid {uuid}""".format(

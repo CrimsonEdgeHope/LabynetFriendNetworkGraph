@@ -8,7 +8,6 @@ import requests
 import time
 from uuid import UUID
 from config import (get_item,
-                    get_request_headers,
                     get_start_spot,
                     get_proxies,
                     get_crawling_method,
@@ -16,7 +15,7 @@ from config import (get_item,
                     get_import_json,
                     AUTOMATION_START_FROM_UUID, AUTOMATION_IMPORT_RESULT,
                     CRAWLING_DEPTH_FIRST, CRAWLING_BREADTH_FIRST, set_item)
-from util import save_result, import_result, generate_graph_html, uuid_to_str, validate_import_json
+from util import save_result, import_result, generate_graph_html, uuid_to_str, validate_import_json, request_to_labynet
 
 __all__ = [
     "run"
@@ -24,6 +23,7 @@ __all__ = [
 
 
 crawler_request_counts: int = 0
+crawler_proxies = get_proxies()
 crawler_request_maximum_counts: int = get_item("crawler", "maximum_requests").value
 crawler_last_req_time: float | int = -1  # timestamp
 bfs_pending: list[UUID] = []
@@ -51,7 +51,7 @@ def crawler_req_add_count():
     crawler_last_req_time = time.time()
 
 
-def _init() -> str | int:
+def crawler_init_prompt() -> str | int:
     _start_spot = get_start_spot()
     _import_json = get_import_json()
 
@@ -235,10 +235,8 @@ def _crawler_make_request_to_laby(session: requests.Session, delay: int,
 
     crawler_wait(delay)
 
-    _rh = get_request_headers()
-    _url = "https://{}/api/v3/user/{}/{}".format(_rh["host"], uuid, mode)
-    logging.info(_url)
-    req = session.get(_url, proxies=get_proxies(), headers=_rh)
+    req = request_to_labynet(session=session, uuid=uuid, mode=mode, proxies=crawler_proxies)
+
     _status = req.status_code
     logging.debug(_status)
     logging.debug(req.headers)
@@ -298,7 +296,7 @@ def _crawler_run(nodes: list[UUID], edges: list[tuple[UUID, UUID]], uuid_to_ign:
 
 
 def run():
-    _op = _init()
+    _op = crawler_init_prompt()
 
     _start_spot = get_start_spot()
     if _start_spot:
@@ -313,7 +311,7 @@ def run():
     if _op == AUTOMATION_IMPORT_RESULT:
         _crawler_run(nodes=_nodes, edges=_edges, uuid_to_ign=_uuid_to_ign, import_json=_import_json)
     else:
-        _delay = 4
+        _delay = 5
         _leftovers: list[UUID] = []
         _forbid_out: list[UUID] = []
         _error_out: list[UUID] = []

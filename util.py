@@ -5,7 +5,8 @@ __all__ = [
     "path_to_result",
     "get_ign_from_uuid",
     "uuid_to_str",
-    "validate_import_json"
+    "validate_import_json",
+    "request_to_labynet"
 ]
 
 import json
@@ -13,7 +14,9 @@ import logging
 import os
 import random
 import time
+from typing import Literal
 from uuid import UUID
+import requests
 from pyvis.network import Network
 from config import get_item, get_config_object, get_request_headers
 
@@ -125,3 +128,14 @@ def validate_import_json(filename: str) -> bool:
     if filename is None:
         return False
     return os.path.exists(path_to_result(filename))
+
+
+def request_to_labynet(session: requests.Session,
+                       uuid: UUID,
+                       mode: Literal["friends", "profile", "accounts"] = "friends",
+                       **kwargs):
+    _rh = get_request_headers()
+    _url = "https://{}/api/v3/user/{}/{}".format(_rh["host"], uuid, mode)
+    logging.info(_url)
+    res = session.get(_url, proxies=kwargs["proxies"], headers=_rh)
+    return res
