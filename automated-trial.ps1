@@ -15,7 +15,7 @@ $configJson = "{
     `"maximum_requests`": $MaximumRequests,
     `"crawling_method`": `"$CrawlingMethod`",
     `"start_spot`": `"$StartSpot`"
-  },
+  }
 }
 "
 
