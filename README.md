@@ -2,19 +2,6 @@
 
 A script that helps you fetch and analyse a whole friendship relations of a community of people from `laby.net`
 
-After the script finishes job, a json file that contains all fetched data will be saved to `result` directory, which is useful for graph generation and data analysis.
-In addition, there are some helpful scripts providing summarization, and CQL query generation suitable for Neo4j.
-
-## Gallery
-
-Result json and CQL:
-
-![](https://assets.app.crimsonedgehope.warpedinnether.top:65499/LabynetFriendNetworkGraph-2.png)
-
-Neo4j database:
-
-![](https://assets.app.crimsonedgehope.warpedinnether.top:65499/LabynetFriendNetworkGraph-1.png)
-
 ## Usage
 
 Prerequisites:
@@ -29,6 +16,8 @@ python LabynetFriendNetworkGraph.py
 ```
 
 Follow prompts, tell the script the place to start from, then sit and have a cup of Java.
+
+After the script finishes job, a json file that contains all fetched data will be saved to `result` directory, which is useful for graph generation and data analysis.
 
 ### Config
 
@@ -78,6 +67,33 @@ Example config:
   }
 }
 ```
+
+### Tools
+
+There are also some helpful scripts providing summarization, and CQL query generation suitable for Neo4j.
+
+- Summarization:
+
+```shell
+python result_json_summarization.py result_json_thats_in_result_dir.json
+```
+
+- CQL generation:
+
+```shell
+python result_json_to_neo4j_cql.py result_json_thats_in_result_dir.json
+```
+
+
+## Gallery
+
+Result json and CQL:
+
+![](https://assets.app.crimsonedgehope.warpedinnether.top:65499/LabynetFriendNetworkGraph-2.png)
+
+Neo4j database:
+
+![](https://assets.app.crimsonedgehope.warpedinnether.top:65499/LabynetFriendNetworkGraph-1.png)
 
 ## License
 
