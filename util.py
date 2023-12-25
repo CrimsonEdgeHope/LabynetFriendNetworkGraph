@@ -6,6 +6,7 @@ __all__ = [
     "get_ign_from_uuid",
     "uuid_to_str",
     "validate_import_json",
+    "validate_start_spot",
     "request_to_labynet"
 ]
 
@@ -128,6 +129,14 @@ def validate_import_json(filename: str) -> bool:
     if filename is None:
         return False
     return os.path.exists(path_to_result(filename))
+
+
+def validate_start_spot(_v):
+    try:
+        UUID(_v)
+        return True
+    except:
+        return False
 
 
 def request_to_labynet(session: requests.Session,

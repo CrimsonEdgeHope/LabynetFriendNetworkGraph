@@ -1,4 +1,3 @@
-import inquirer
 import json
 import logging
 from json import JSONDecodeError
@@ -15,7 +14,15 @@ from config import (get_item,
                     get_import_json,
                     AUTOMATION_START_FROM_UUID, AUTOMATION_IMPORT_RESULT,
                     CRAWLING_DEPTH_FIRST, CRAWLING_BREADTH_FIRST, set_item)
-from util import save_result, import_result, generate_graph_html, uuid_to_str, validate_import_json, request_to_labynet
+from util import (save_result,
+                  import_result,
+                  generate_graph_html,
+                  uuid_to_str,
+                  validate_import_json,
+                  request_to_labynet,
+                  validate_start_spot)
+from ui_prompt import *
+
 
 __all__ = [
     "run"
@@ -55,17 +62,10 @@ def crawler_init_prompt() -> str | int:
     _start_spot = get_start_spot()
     _import_json = get_import_json()
 
-    def _validate_start_spot(_v):
-        try:
-            UUID(_v)
-            return True
-        except:
-            return False
-
     _automate = get_automation_id()
     if _automate is not None:
         if _automate == AUTOMATION_START_FROM_UUID:
-            if not _validate_start_spot(_start_spot):
+            if not validate_start_spot(_start_spot):
                 raise ValueError("Automation failure: Invalid start_spot value.")
         elif _automate == AUTOMATION_IMPORT_RESULT:
             if not validate_import_json(_import_json):
@@ -75,28 +75,14 @@ def crawler_init_prompt() -> str | int:
         _op = _automate
     else:
         # Prompts
-        _ans = inquirer.prompt([inquirer.List("op", message="What to do",
-                                              choices=[
-                                                  ("Start from an UUID", AUTOMATION_START_FROM_UUID),
-                                                  ("Import previous result", AUTOMATION_IMPORT_RESULT),
-                                                  ("Quit", "3")
-                                              ],
-                                              default=AUTOMATION_IMPORT_RESULT)])
+        _ans = prompt_startup()
         _op = _ans["op"]
         if _op == AUTOMATION_IMPORT_RESULT:
-            _ans = inquirer.prompt([
-                inquirer.Text("filename", message="Result file name",
-                              default=_import_json,
-                              validate=lambda _prevans, _v: validate_import_json(_v))
-            ])
+            _ans = prompt_import_json(import_json=_import_json)
             _import_json = _ans["filename"]
             _start_spot = None
         elif _op == AUTOMATION_START_FROM_UUID:
-            _ans = inquirer.prompt([
-                inquirer.Text("uuid", message="Give an UUID to start from",
-                              default=_start_spot,
-                              validate=lambda _prevans, _v: _validate_start_spot(_v))
-            ])
+            _ans = prompt_start_spot(start_spot=_start_spot)
             _start_spot = _ans["uuid"]
             _import_json = None
         else:
@@ -121,7 +107,7 @@ def _construct_graph_add_edge(edges: list[tuple[UUID, UUID]], source: UUID, to: 
         edges.insert(0, _obj)
 
 
-def _construct_graph_get_data_from_laby(delay: int, session: requests.Session, uuid: UUID,
+def _construct_graph_get_data_from_laby(session: requests.Session, delay: int, uuid: UUID,
                                         leftovers: list[UUID], forbid_out: list[UUID], error_out: list[UUID]):
     def _halt(_at, _re):
         if _at >= _re:
@@ -130,13 +116,20 @@ def _construct_graph_get_data_from_laby(delay: int, session: requests.Session, u
         freeze(delay=120)
         return False
 
+    def _do_request():
+        if crawler_request_counts >= crawler_request_maximum_counts:
+            logging.warning("Maximum request counts reached. Abort.")
+            leftovers.append(uuid)
+            return 429, []
+        return crawler_make_request_to_laby(delay=delay, session=session, uuid=_current, mode="friends")
+
     _retries = 3
     _attempts = 0
     _current = uuid
     while True:
         try:
             _res_t = []
-            _status_t, _res_t = _crawler_make_request_to_laby(delay=delay, session=session, uuid=_current, leftovers=leftovers)
+            _status_t, _res_t = _do_request()
             if _status_t != 200:
                 if _status_t == 403:
                     logging.error("Remote host returned 403 FORBIDDEN: 1. Blocked by Cloudflare. 2. {} hides "
@@ -161,8 +154,8 @@ def _construct_graph_get_data_from_laby(delay: int, session: requests.Session, u
 
 
 def _construct_graph_dfs(nodes: list[UUID], edges: list[tuple[UUID, UUID]], uuid_to_ign: dict[str, str],
-                         delay: int, session: requests.Session,
                          leftovers: list[UUID], forbid_out: list[UUID], error_out: list[UUID],
+                         session: requests.Session, delay: int,
                          current: UUID, previous: UUID = None):
 
     _has_prev = previous is not None
@@ -195,8 +188,8 @@ def _construct_graph_dfs(nodes: list[UUID], edges: list[tuple[UUID, UUID]], uuid
 
 
 def _construct_graph_bfs(nodes: list[UUID], edges: list[tuple[UUID, UUID]], uuid_to_ign: dict[str, str],
-                         delay: int, session: requests.Session,
                          leftovers: list[UUID], forbid_out: list[UUID], error_out: list[UUID],
+                         session: requests.Session, delay: int,
                          start_spot: UUID):
 
     _queue = bfs_pending
@@ -225,13 +218,8 @@ def _construct_graph_bfs(nodes: list[UUID], edges: list[tuple[UUID, UUID]], uuid
             _queue.append(_obj)
 
 
-def _crawler_make_request_to_laby(session: requests.Session, delay: int,
-                                  uuid: UUID, leftovers: list[UUID] = None,
-                                  mode: Literal["friends", "profile"] = "friends") -> [int, list]:
-    if crawler_request_counts >= crawler_request_maximum_counts and mode == "friends":
-        logging.warning("Maximum request counts reached. Abort.")
-        leftovers.append(uuid)
-        return 429, []
+def crawler_make_request_to_laby(session: requests.Session, delay: int, uuid: UUID,
+                                 mode: Literal["friends", "profile"] = "friends") -> [int, list]:
 
     crawler_wait(delay)
 
@@ -257,40 +245,38 @@ def _crawler_make_request_to_laby(session: requests.Session, delay: int,
 
 
 def _crawler_run(nodes: list[UUID], edges: list[tuple[UUID, UUID]], uuid_to_ign: dict[str, str],
-                 delay: int = None, leftovers: list[UUID] = None, forbid_out: list[UUID] = None, error_out: list[UUID] = None,
-                 session: requests.Session = None,
-                 start_spot: UUID = None, import_json: str = None):
+                 leftovers: list[UUID], forbid_out: list[UUID], error_out: list[UUID],
+                 session: requests.Session, delay: int,
+                 start_spot: UUID):
+
     _uuid = start_spot
+    if _uuid is None:
+        raise ValueError("There's nothing.")
 
-    if _uuid is not None:
-        logging.info("Wait 30 seconds in case 429")
-        freeze(delay=30)
-        _method_op = get_crawling_method()
-        if _method_op == CRAWLING_DEPTH_FIRST:
-            logging.debug("Depth-first crawling.")
-            _construct_graph_dfs(nodes=nodes, edges=edges, uuid_to_ign=uuid_to_ign,
-                                 delay=delay, session=session,
-                                 leftovers=leftovers, forbid_out=forbid_out, error_out=error_out,
-                                 current=_uuid)
-        elif _method_op == CRAWLING_BREADTH_FIRST:
-            logging.debug("Breadth-first crawling.")
-            _construct_graph_bfs(nodes=nodes, edges=edges, uuid_to_ign=uuid_to_ign,
-                                 delay=delay, session=session,
-                                 leftovers=leftovers, forbid_out=forbid_out, error_out=error_out,
-                                 start_spot=_uuid)
-        else:
-            raise ValueError("There's nothing.")
-
-        _status, _res = _crawler_make_request_to_laby(delay=delay, session=session, uuid=_uuid, mode="profile")
-        _s = uuid_to_str(_uuid)
-        if _status == 200:
-            uuid_to_ign[_s] = _res["username"]
-        else:
-            uuid_to_ign[_s] = _s
-    elif import_json is not None:
-        nodes, edges, uuid_to_ign = import_result(import_json)
+    logging.info("Wait 30 seconds in case 429")
+    freeze(delay=30)
+    _method_op = get_crawling_method()
+    if _method_op == CRAWLING_DEPTH_FIRST:
+        logging.debug("Depth-first crawling.")
+        _construct_graph_dfs(nodes=nodes, edges=edges, uuid_to_ign=uuid_to_ign,
+                             delay=delay, session=session,
+                             leftovers=leftovers, forbid_out=forbid_out, error_out=error_out,
+                             current=_uuid)
+    elif _method_op == CRAWLING_BREADTH_FIRST:
+        logging.debug("Breadth-first crawling.")
+        _construct_graph_bfs(nodes=nodes, edges=edges, uuid_to_ign=uuid_to_ign,
+                             delay=delay, session=session,
+                             leftovers=leftovers, forbid_out=forbid_out, error_out=error_out,
+                             start_spot=_uuid)
     else:
         raise ValueError("There's nothing.")
+
+    _status, _res = crawler_make_request_to_laby(delay=delay, session=session, uuid=_uuid, mode="profile")
+    _s = uuid_to_str(_uuid)
+    if _status == 200:
+        uuid_to_ign[_s] = _res["username"]
+    else:
+        uuid_to_ign[_s] = _s
 
     generate_graph_html(nodes, edges, uuid_to_ign)
 
@@ -309,7 +295,8 @@ def run():
     _uuid_to_ign: dict[str, str] = {}
 
     if _op == AUTOMATION_IMPORT_RESULT:
-        _crawler_run(nodes=_nodes, edges=_edges, uuid_to_ign=_uuid_to_ign, import_json=_import_json)
+        _nodes, _edges, _uuid_to_ign = import_result(_import_json)
+        generate_graph_html(_nodes, _edges, _uuid_to_ign)
     else:
         _delay = 5
         _leftovers: list[UUID] = []
@@ -318,7 +305,8 @@ def run():
         _session = requests.Session()
         try:
             _crawler_run(nodes=_nodes, edges=_edges, uuid_to_ign=_uuid_to_ign,
-                         delay=_delay, leftovers=_leftovers, forbid_out=_forbid_out, error_out=_error_out, session=_session,
+                         leftovers=_leftovers, forbid_out=_forbid_out, error_out=_error_out,
+                         session=_session, delay=_delay,
                          start_spot=_start_spot)
         finally:
             save_result(nodes=_nodes, edges=_edges, uuid_to_ign=_uuid_to_ign,
