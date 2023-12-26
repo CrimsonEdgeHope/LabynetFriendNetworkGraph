@@ -4,8 +4,8 @@ on:
   pull_request:
     paths:
       - "crawler.py"
-      - ".github/workflows/**/*.yml"
-      - "!.github/workflows/**/tag-version.yml"
+      - ".github/workflows/crawler-trial-trigger.yml"
+      - ".github/workflows/crawler-trial-workflow.yml"
 
 
 jobs:

@@ -57,7 +57,7 @@ jobs:
           skip_fetch: true
           disable_globbing: true
           tagging_message: ${{ inputs.tag }}
-          commit_author: ${{ vars.BOT_NAME }} <${{ vars.BOT_ID }}+${{ var.BOT_NAME }}@users.noreply.github.com>
+          commit_author: ${{ vars.BOT_NAME }} <${{ vars.BOT_ID }}+${{ vars.BOT_NAME }}@users.noreply.github.com>
 
   ver-on-pr:
     if: ${{ github.event_name == 'pull_request' }}
@@ -96,4 +96,4 @@ jobs:
           skip_checkout: true
           skip_fetch: true
           disable_globbing: true
-          commit_author: ${{ vars.BOT_NAME }} <${{ vars.BOT_ID }}+${{ var.BOT_NAME }}@users.noreply.github.com>
+          commit_author: ${{ vars.BOT_NAME }} <${{ vars.BOT_ID }}+${{ vars.BOT_NAME }}@users.noreply.github.com>
