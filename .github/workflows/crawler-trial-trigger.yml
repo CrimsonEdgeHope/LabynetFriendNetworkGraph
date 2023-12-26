@@ -9,8 +9,8 @@ on:
 
 
 jobs:
-  trial-on-pr:
-    if: ${{ github.event_name == 'pull_request' }}
+  crawler-trial-on-pr:
+    if: ${{ github.event_name == 'pull_request' && github.actor_id != vars.BOT_ID }}
     strategy:
       max-parallel: 1
       fail-fast: false
