@@ -10,19 +10,15 @@ from config import (get_item,
                     get_start_spot,
                     get_proxies,
                     get_crawling_method,
-                    get_automation_id,
                     get_import_json,
-                    AUTOMATION_START_FROM_UUID, AUTOMATION_IMPORT_RESULT,
-                    CRAWLING_DEPTH_FIRST, CRAWLING_BREADTH_FIRST, set_item)
+                    AUTOMATION_IMPORT_RESULT,
+                    CRAWLING_DEPTH_FIRST, CRAWLING_BREADTH_FIRST)
+from ui_prompt import *
 from util import (save_result,
                   import_result,
                   generate_graph_html,
                   uuid_to_str,
-                  validate_import_json,
-                  request_to_labynet,
-                  validate_start_spot)
-from ui_prompt import *
-
+                  request_to_labynet)
 
 __all__ = [
     "run"
@@ -56,44 +52,6 @@ def crawler_req_add_count():
     global crawler_last_req_time
     crawler_request_counts += 1
     crawler_last_req_time = time.time()
-
-
-def crawler_init_prompt() -> str | int:
-    _start_spot = get_start_spot()
-    _import_json = get_import_json()
-
-    _automate = get_automation_id()
-    if _automate is not None:
-        if _automate == AUTOMATION_START_FROM_UUID:
-            if not validate_start_spot(_start_spot):
-                raise ValueError("Automation failure: Invalid start_spot value.")
-        elif _automate == AUTOMATION_IMPORT_RESULT:
-            if not validate_import_json(_import_json):
-                raise ValueError("Automation failure: Invalid import_json value.")
-        else:
-            raise ValueError("Automation failure: Unknown config value: {}".format(_automate))
-        _op = _automate
-    else:
-        # Prompts
-        _ans = prompt_startup()
-        _op = _ans["op"]
-        if _op == AUTOMATION_IMPORT_RESULT:
-            _ans = prompt_import_json(import_json=_import_json)
-            _import_json = _ans["filename"]
-            _start_spot = None
-        elif _op == AUTOMATION_START_FROM_UUID:
-            _ans = prompt_start_spot(start_spot=_start_spot)
-            _start_spot = _ans["uuid"]
-            _import_json = None
-        else:
-            exit(0)
-
-    if _start_spot:
-        set_item("crawler", "start_spot", value=_start_spot)
-    if _import_json:
-        set_item("import_json", value=_import_json)
-
-    return _op
 
 
 def _construct_graph_add_node(nodes: list[UUID], obj: UUID):

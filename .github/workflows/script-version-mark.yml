@@ -7,6 +7,8 @@ on:
         required: true
         description: Tag
   pull_request:
+    types:
+      - closed
     paths:
       - "LabynetFriendNetworkGraph.py"
       - "config.py"
@@ -64,7 +66,7 @@ jobs:
           commit_author: ${{ vars.BOT_NAME }} <${{ vars.BOT_ID }}+${{ vars.BOT_NAME }}@users.noreply.github.com>
 
   ver-on-pr:
-    if: ${{ github.event_name == 'pull_request' && github.actor_id != vars.BOT_ID }}
+    if: ${{ github.event_name == 'pull_request' && github.actor_id != vars.BOT_ID && github.event.pull_request.merged == true }}
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/create-github-app-token@v1
@@ -75,7 +77,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           token: ${{ steps.app-token.outputs.token }}
-          ref: ${{ github.head_ref }}
+          ref: ${{ github.ref }}
       - name: envs
         run: |
           echo "DATE=$(date +%s)" >> $GITHUB_ENV
@@ -93,10 +95,11 @@ jobs:
       - name: Commit
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
-          commit_message: Dev version (${{ github.run_id }})
+          commit_message: dev version ${{ env.PR_VER }} (${{ github.run_id }})
           file_pattern: "./.env"
           add_options: "--all"
           skip_checkout: true
           skip_fetch: true
           disable_globbing: true
+          push_options: "--force"
           commit_author: ${{ vars.BOT_NAME }} <${{ vars.BOT_ID }}+${{ vars.BOT_NAME }}@users.noreply.github.com>
