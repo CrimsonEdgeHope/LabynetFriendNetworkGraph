@@ -41,7 +41,7 @@ class ConfigItem:
         assert isinstance(value, value_type)
         if validation is not None:
             assert callable(validation)
-            validation(key, value, value_type)
+            assert validation(key, value, value_type)
 
     @property
     def key(self) -> str:
@@ -99,13 +99,15 @@ def load_config():
     _config_obj["import_json"] = ConfigItem("import_json", None, str | None)
     _config_obj["crawler"] = ConfigItem("crawler", {
         "crawling_method": ConfigItem("crawling_method", "2", str),
-        "maximum_requests": ConfigItem("maximum_requests", 10, int),
-        "start_spot": ConfigItem("start_spot", None, str | None)
+        "maximum_requests": ConfigItem("maximum_requests", 10, int, validation=lambda _k, _v, _vt: _v >= 1),
+        "start_spot": ConfigItem("start_spot", None, str | None),
+        "delay": ConfigItem("delay", 5, int, validation=lambda _k, _v, _vt: _v >= 5),
+        "follow_alternatives": ConfigItem("follow_alternatives", True, bool)
     }, dict)
     _config_obj["static_html_export"] = ConfigItem("static_html_export", {
         "html": ConfigItem("html", "graph.html", str),
-        "graph_width": ConfigItem("graph_width", 1920, int),
-        "graph_height": ConfigItem("graph_height", 1080, int)
+        "graph_width": ConfigItem("graph_width", 1920, int, validation=lambda _k, _v, _vt: _v > 0),
+        "graph_height": ConfigItem("graph_height", 1080, int, validation=lambda _k, _v, _vt: _v > 0)
     }, dict)
 
     if not os.path.exists(_config_file_name):
