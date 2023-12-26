@@ -1,9 +1,9 @@
 import re
 import sys
 import time
-import inquirer
 import config
 from config import AUTOMATION_IMPORT_RESULT
+from ui_prompt import prompt_import_json
 from util import import_result, get_ign_from_uuid, validate_import_json
 
 __all__ = [
@@ -15,11 +15,7 @@ __all__ = [
 def result_json_prompt(full: bool = True):
     _import_json = config.get_import_json()
     if config.get_automation_id() != AUTOMATION_IMPORT_RESULT:
-        _ans = inquirer.prompt([
-            inquirer.Text("filename", message="Result file name",
-                          default=_import_json,
-                          validate=lambda _prevans, _v: validate_import_json(_v))
-        ])
+        _ans = prompt_import_json(import_json=_import_json)
         _import_json = _ans["filename"]
     elif not validate_import_json(_import_json):
         raise ValueError("Invalid import_json value.")

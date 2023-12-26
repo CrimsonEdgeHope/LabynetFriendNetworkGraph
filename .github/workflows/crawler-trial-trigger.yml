@@ -4,13 +4,18 @@ on:
   pull_request:
     paths:
       - "crawler.py"
-      - ".github/workflows/**/*.yml"
-      - "!.github/workflows/**/tag-version.yml"
+      - ".github/workflows/crawler-trial-workflow.yml"
+      - "!.github/workflows/crawler-trial-trigger.yml"
+      - "!.env"
+      - "!.gitignore"
+      - "!README.md"
+      - "!**/*.csv"
+      - "!LICENSE"
 
 
 jobs:
-  trial-on-pr:
-    if: ${{ github.event_name == 'pull_request' }}
+  crawler-trial-on-pr:
+    if: ${{ github.event_name == 'pull_request' && github.actor_id != vars.BOT_ID }}
     strategy:
       max-parallel: 1
       fail-fast: false

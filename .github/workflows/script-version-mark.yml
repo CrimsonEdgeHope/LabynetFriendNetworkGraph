@@ -1,0 +1,102 @@
+name: Script version mark
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        type: string
+        required: true
+        description: Tag
+  pull_request:
+    paths:
+      - "LabynetFriendNetworkGraph.py"
+      - "config.py"
+      - "crawler.py"
+      - "util.py"
+      - "ui_prompt.py"
+      - "automated-trial.ps1"
+      - "automated-trial.sh"
+      - "result_json_lint.py"
+      - "result_json_lint_result_directory.ps1"
+      - "result_json_lint_result_directory.sh"
+      - "result_json_summarization.py"
+      - "result_json_to_neo4j_cql.py"
+      - "!.env"
+      - "!.gitignore"
+      - "!README.md"
+      - "!**/*.csv"
+      - "!LICENSE"
+
+
+permissions:
+  contents: write
+
+
+jobs:
+  tag:
+    if: ${{ github.event_name == 'workflow_dispatch' && github.actor_id != vars.BOT_ID }}
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/create-github-app-token@v1
+        id: app-token
+        with:
+          app-id: ${{ vars.APP_ID }}
+          private-key: ${{ secrets.APP_KEY }}
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          token: ${{ steps.app-token.outputs.token }}
+      - name: dotenv
+        run: |
+          echo SCRIPT_VERSION_DECLARATION="${{ inputs.tag }}" > .env
+          echo SCRIPT_CONTACT_DECLARATION="https://github.com/${{ github.repository_owner }}" >> .env
+          cat .env
+        shell: bash
+      - name: Commit
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: Tag version ${{ inputs.tag }} (${{ github.run_id }})
+          file_pattern: "./.env"
+          add_options: "--all"
+          skip_checkout: true
+          skip_fetch: true
+          disable_globbing: true
+          tagging_message: ${{ inputs.tag }}
+          commit_author: ${{ vars.BOT_NAME }} <${{ vars.BOT_ID }}+${{ vars.BOT_NAME }}@users.noreply.github.com>
+
+  ver-on-pr:
+    if: ${{ github.event_name == 'pull_request' && github.actor_id != vars.BOT_ID }}
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/create-github-app-token@v1
+        id: app-token
+        with:
+          app-id: ${{ vars.APP_ID }}
+          private-key: ${{ secrets.APP_KEY }}
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ steps.app-token.outputs.token }}
+          ref: ${{ github.head_ref }}
+      - name: envs
+        run: |
+          echo "DATE=$(date +%s)" >> $GITHUB_ENV
+        shell: bash
+      - name: ver
+        run: |
+          echo "PR_VER=pr${{ github.event.number }}+${{ env.DATE }}" >> $GITHUB_ENV
+        shell: bash
+      - name: dotenv
+        run: |
+          echo SCRIPT_VERSION_DECLARATION="${{ env.PR_VER }}" > .env
+          echo SCRIPT_CONTACT_DECLARATION="https://github.com/${{ github.repository_owner }}" >> .env
+          cat .env
+        shell: bash
+      - name: Commit
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: Dev version (${{ github.run_id }})
+          file_pattern: "./.env"
+          add_options: "--all"
+          skip_checkout: true
+          skip_fetch: true
+          disable_globbing: true
+          commit_author: ${{ vars.BOT_NAME }} <${{ vars.BOT_ID }}+${{ vars.BOT_NAME }}@users.noreply.github.com>
