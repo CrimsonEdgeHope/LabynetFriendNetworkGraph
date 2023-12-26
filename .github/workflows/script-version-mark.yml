@@ -20,6 +20,11 @@ on:
       - "result_json_lint_result_directory.sh"
       - "result_json_summarization.py"
       - "result_json_to_neo4j_cql.py"
+      - "!.env"
+      - "!.gitignore"
+      - "!README.md"
+      - "!**/*.csv"
+      - "!LICENSE"
 
 
 permissions:
