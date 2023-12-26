@@ -77,7 +77,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           token: ${{ steps.app-token.outputs.token }}
-          ref: ${{ github.ref }}
+          ref: master
       - name: envs
         run: |
           echo "DATE=$(date +%s)" >> $GITHUB_ENV
