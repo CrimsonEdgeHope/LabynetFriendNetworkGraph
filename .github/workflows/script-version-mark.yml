@@ -40,7 +40,6 @@ jobs:
         uses: actions/checkout@v4
         with:
           token: ${{ steps.app-token.outputs.token }}
-          persist-credentials: false
       - name: dotenv
         run: |
           echo SCRIPT_VERSION_DECLARATION="${{ inputs.tag }}" > .env
@@ -72,14 +71,13 @@ jobs:
         with:
           token: ${{ steps.app-token.outputs.token }}
           ref: ${{ github.head_ref }}
-          persist-credentials: false
       - name: envs
         run: |
           echo "DATE=$(date +%s)" >> $GITHUB_ENV
         shell: bash
       - name: ver
         run: |
-          echo "PR_VER=pr-${{ github.event.number }}-${{ env.DATE }}" >> $GITHUB_ENV
+          echo "PR_VER=pr${{ github.event.number }}+${{ env.DATE }}" >> $GITHUB_ENV
         shell: bash
       - name: dotenv
         run: |
