@@ -33,9 +33,11 @@ Create `config.json` in project's root directory. (json5 allows comments while j
   "automate": null,     // Run script without interactive prompts. "1" to start crawling, "2" to import a copy of result json.
   "import_json": null,  // A copy of result json in result directory to be imported. Only filename, no path. Used as default value.
   "crawler": {
-    "crawling_method": "2",  // "1": Depth-first crawling. "2": Breadth-first crawling.
-    "maximum_requests": 10,  // How many requests can the crawler send to laby.net, including failures.
-    "start_spot": null       // A Minecraft player's UUID to start from. Used as default value.
+    "crawling_method": "2",   // "1": Depth-first crawling. "2": Breadth-first crawling.
+    "maximum_requests": 10,   // How many requests can the crawler send to laby.net, including failures.
+    "start_spot": null,       // A Minecraft player's UUID to start from. Used as default value.
+    "delay": 5,               // Delay in seconds between requests, shall be at least 5 sec.
+    "follow_alternatives": true   // Should crawler follow alternative characters declared on laby.net
   },
   "static_html_export": {
     "html": "graph.html",   // Filename of static html file that shows a graph.
@@ -58,7 +60,9 @@ Example config:
   "crawler": {
     "crawling_method": "2",
     "maximum_requests": 10,
-    "start_spot": "7659cedb-c9c1-4f28-b966-19823fd8666b"
+    "start_spot": "7659cedb-c9c1-4f28-b966-19823fd8666b",
+    "delay": 5,
+    "follow_alternatives": true
   },
   "static_html_export": {
     "html": "graph.html",
