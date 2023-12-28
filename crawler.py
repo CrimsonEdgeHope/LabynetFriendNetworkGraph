@@ -213,10 +213,8 @@ def crawler_run(nodes: list[UUID], edges: list[tuple[UUID, UUID]], uuid_to_ign: 
 def init():
     _op = crawler_init_prompt()
 
-    _start_spot = get_start_spot()
-    if _start_spot:
-        _start_spot = UUID(_start_spot)
-        logging.debug(_start_spot)
+    _start_spot = get_start_spot(as_uuid_object=True)
+    logging.debug(_start_spot)
     _import_json = get_import_json()
 
     _nodes: list[UUID] = []

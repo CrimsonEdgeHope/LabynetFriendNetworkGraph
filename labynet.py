@@ -11,7 +11,7 @@ from typing import Literal
 from uuid import UUID
 import requests
 from config import get_request_headers
-from util import uuid_to_str
+from util import uuid_to_str, str_to_uuid
 
 
 def friend_or_alt(session: requests.Session,
@@ -31,7 +31,7 @@ def friend_or_alt(session: requests.Session,
     _pr = []
     for i in _r:
         _pr.append({
-            "uuid": UUID(i["uuid"]),
+            "uuid": str_to_uuid(i["uuid"]),
             "user_name": i["user_name"]
         })
     return _res, _pr
@@ -50,11 +50,11 @@ def profile(session: requests.Session, uuid: UUID, full: bool = False, **kwargs)
                 _username = _uuid
             if not full:
                 _r = {
-                    "uuid": UUID(_uuid),
+                    "uuid": str_to_uuid(_uuid),
                     "username": _username
                 }
             else:
-                _r["uuid"] = UUID(_uuid)
+                _r["uuid"] = str_to_uuid(_uuid)
                 _r["username"] = _username
         except JSONDecodeError:
             _r = {}
