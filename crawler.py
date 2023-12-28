@@ -26,6 +26,7 @@ crawler_proxies = get_proxies()
 crawler_request_maximum_counts: int = get_item("crawler", "maximum_requests").value
 crawler_delay = get_item("crawler", "delay").value
 crawler_last_req_time: float | int = -1  # timestamp
+crawler_follow_alt = get_item("crawler", "follow_alternatives").value
 bfs_pending: list[UUID] = []
 
 
@@ -51,8 +52,13 @@ def crawler_req_add_count():
     crawler_last_req_time = time.time()
 
 
+def _graph_node_presence(nodes: list[UUID], obj: UUID) -> bool:
+    _c = nodes.count(obj)
+    return _c != 0
+
+
 def _construct_graph_add_node(nodes: list[UUID], obj: UUID):
-    if nodes.count(obj) == 0:
+    if not _graph_node_presence(nodes, obj):
         nodes.append(obj)
 
 
@@ -77,6 +83,8 @@ def _construct_graph_get_data_from_laby(session: requests.Session, uuid: UUID,
             leftovers.append(uuid)
             return 429, []
         _r = crawler_make_request_to_laby(session=session, uuid=_current, mode="friends")
+        _ra = crawler_make_request_to_laby(session=session, uuid=_current, mode="accounts")
+        _r[1].extend(_ra[1])
         return _r[0].status_code, _r[1]
 
     _retries = 3
@@ -114,7 +122,7 @@ def _construct_graph_dfs(nodes: list[UUID], edges: list[tuple[UUID, UUID]], uuid
     if _has_prev:
         _construct_graph_add_edge(edges=edges, source=current, to=previous)
 
-    if nodes.count(current) != 0:
+    if _graph_node_presence(nodes, current):
         return
 
     _construct_graph_add_node(nodes, current)
@@ -150,8 +158,7 @@ def _construct_graph_bfs(nodes: list[UUID], edges: list[tuple[UUID, UUID]], uuid
         _current = _queue[0]
         _queue.remove(_current)
 
-        _node_present = nodes.count(_current)
-        if _node_present != 0:
+        if _graph_node_presence(nodes, _current):
             continue
         _construct_graph_add_node(nodes, _current)
 
@@ -172,8 +179,10 @@ def crawler_make_request_to_laby(session: requests.Session, uuid: UUID,
     crawler_wait(delay=crawler_delay)
     if mode == "profile":
         r = labynet.profile(session=session, uuid=uuid, proxies=crawler_proxies)
-    else:
+    elif mode == "friends" or mode == "accounts":
         r = labynet.friend_or_alt(session=session, uuid=uuid, mode=mode, proxies=crawler_proxies)
+    else:
+        raise ValueError(f"What's this? ({mode})")
     crawler_req_add_count()
     return r
 
@@ -225,6 +234,8 @@ def init():
         _nodes, _edges, _uuid_to_ign = import_result(_import_json)
         generate_graph_html(_nodes, _edges, _uuid_to_ign)
     else:
+        logging.debug(f"Delay: {crawler_delay}")
+        logging.debug(f"Follow alt: {crawler_follow_alt}")
         _leftovers: list[UUID] = []
         _forbid_out: list[UUID] = []
         _error_out: list[UUID] = []
