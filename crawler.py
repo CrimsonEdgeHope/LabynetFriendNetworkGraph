@@ -234,6 +234,7 @@ def init():
         _nodes, _edges, _uuid_to_ign = import_result(_import_json)
         generate_graph_html(_nodes, _edges, _uuid_to_ign)
     else:
+        logging.debug(f"Proxies: {crawler_proxies}")
         logging.debug(f"Delay: {crawler_delay}")
         logging.debug(f"Follow alt: {crawler_follow_alt}")
         _leftovers: list[UUID] = []

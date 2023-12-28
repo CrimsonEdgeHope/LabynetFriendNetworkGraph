@@ -24,7 +24,6 @@ from types import UnionType
 from typing import Type
 from uuid import UUID
 import dotenv
-from util import str_to_uuid
 
 
 _config_file_name = "config.json"
@@ -176,6 +175,7 @@ def get_automation_id() -> str:
 
 
 def get_start_spot(as_uuid_object: bool = False) -> str | UUID | None:
+    from util import str_to_uuid
     v = get_item("crawler", "start_spot").value
     if not v:
         return None
