@@ -6,8 +6,7 @@ __all__ = [
     "get_ign_from_uuid",
     "uuid_to_str",
     "validate_import_json",
-    "validate_start_spot",
-    "request_to_labynet"
+    "validate_start_spot"
 ]
 
 import json
@@ -15,9 +14,7 @@ import logging
 import os
 import random
 import time
-from typing import Literal
 from uuid import UUID
-import requests
 from pyvis.network import Network
 from config import get_item, get_config_object, get_request_headers
 
@@ -137,14 +134,3 @@ def validate_start_spot(_v):
         return True
     except:
         return False
-
-
-def request_to_labynet(session: requests.Session,
-                       uuid: UUID,
-                       mode: Literal["friends", "profile", "accounts"] = "friends",
-                       **kwargs):
-    _rh = get_request_headers()
-    _url = "https://{}/api/v3/user/{}/{}".format(_rh["host"], uuid, mode)
-    logging.info(_url)
-    res = session.get(_url, proxies=kwargs["proxies"], headers=_rh)
-    return res
