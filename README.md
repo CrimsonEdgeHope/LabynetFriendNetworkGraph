@@ -84,20 +84,9 @@ python result_json_summarization.py result_json_thats_in_result_dir.json
 python result_json_to_neo4j_cql.py result_json_thats_in_result_dir.json
 ```
 
-
-## Gallery
-
-Result json and CQL:
-
-![](https://assets.app.crimsonedgehope.warpedinnether.top:65499/LabynetFriendNetworkGraph-2.png)
-
-Neo4j database:
-
-![](https://assets.app.crimsonedgehope.warpedinnether.top:65499/LabynetFriendNetworkGraph-1.png)
-
 ## License
 
-Licensed under WTFPL
+WTFPL
 
 ## Reference
 
