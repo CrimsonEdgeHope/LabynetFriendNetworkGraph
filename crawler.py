@@ -1,11 +1,9 @@
-import json
 import logging
-from json import JSONDecodeError
-import traceback
 from typing import Literal
 import requests
 import time
 from uuid import UUID
+import labynet
 from config import (get_item,
                     get_start_spot,
                     get_proxies,
@@ -17,18 +15,18 @@ from ui_prompt import *
 from util import (save_result,
                   import_result,
                   generate_graph_html,
-                  uuid_to_str,
-                  request_to_labynet)
+                  uuid_to_str)
 
 __all__ = [
-    "run"
+    "init"
 ]
-
 
 crawler_request_counts: int = 0
 crawler_proxies = get_proxies()
 crawler_request_maximum_counts: int = get_item("crawler", "maximum_requests").value
+crawler_delay = get_item("crawler", "delay").value
 crawler_last_req_time: float | int = -1  # timestamp
+crawler_follow_alt = get_item("crawler", "follow_alternatives").value
 bfs_pending: list[UUID] = []
 
 
@@ -54,8 +52,13 @@ def crawler_req_add_count():
     crawler_last_req_time = time.time()
 
 
+def _graph_node_presence(nodes: list[UUID], obj: UUID) -> bool:
+    _c = nodes.count(obj)
+    return _c != 0
+
+
 def _construct_graph_add_node(nodes: list[UUID], obj: UUID):
-    if nodes.count(obj) == 0:
+    if not _graph_node_presence(nodes, obj):
         nodes.append(obj)
 
 
@@ -65,7 +68,7 @@ def _construct_graph_add_edge(edges: list[tuple[UUID, UUID]], source: UUID, to: 
         edges.insert(0, _obj)
 
 
-def _construct_graph_get_data_from_laby(session: requests.Session, delay: int, uuid: UUID,
+def _construct_graph_get_data_from_laby(session: requests.Session, uuid: UUID,
                                         leftovers: list[UUID], forbid_out: list[UUID], error_out: list[UUID]):
     def _halt(_at, _re):
         if _at >= _re:
@@ -79,7 +82,10 @@ def _construct_graph_get_data_from_laby(session: requests.Session, delay: int, u
             logging.warning("Maximum request counts reached. Abort.")
             leftovers.append(uuid)
             return 429, []
-        return crawler_make_request_to_laby(delay=delay, session=session, uuid=_current, mode="friends")
+        _r = crawler_make_request_to_laby(session=session, uuid=_current, mode="friends")
+        _ra = crawler_make_request_to_laby(session=session, uuid=_current, mode="accounts")
+        _r[1].extend(_ra[1])
+        return _r[0].status_code, _r[1]
 
     _retries = 3
     _attempts = 0
@@ -90,8 +96,6 @@ def _construct_graph_get_data_from_laby(session: requests.Session, delay: int, u
             _status_t, _res_t = _do_request()
             if _status_t != 200:
                 if _status_t == 403:
-                    logging.error("Remote host returned 403 FORBIDDEN: 1. Blocked by Cloudflare. 2. {} hides "
-                                  "friend list".format(uuid_to_str(_current)))
                     _res_t = []
                     forbid_out.append(_current)
                 if _status_t >= 500:
@@ -100,7 +104,7 @@ def _construct_graph_get_data_from_laby(session: requests.Session, delay: int, u
                         break
                     continue
 
-            return _status_t, _res_t
+            return _res_t
         except:
             _attempts += 1
             if _halt(_attempts, _retries):
@@ -108,48 +112,42 @@ def _construct_graph_get_data_from_laby(session: requests.Session, delay: int, u
 
     logging.error("Skipping fetching {} friend list because something did not go well".format(uuid_to_str(_current)))
     error_out.append(_current)
-    return 500, []
+    return []
 
 
 def _construct_graph_dfs(nodes: list[UUID], edges: list[tuple[UUID, UUID]], uuid_to_ign: dict[str, str],
                          leftovers: list[UUID], forbid_out: list[UUID], error_out: list[UUID],
-                         session: requests.Session, delay: int,
-                         current: UUID, previous: UUID = None):
-
+                         session: requests.Session, current: UUID, previous: UUID = None):
     _has_prev = previous is not None
     if _has_prev:
         _construct_graph_add_edge(edges=edges, source=current, to=previous)
 
-    if nodes.count(current) != 0:
+    if _graph_node_presence(nodes, current):
         return
 
     _construct_graph_add_node(nodes, current)
 
-    _status, _res = _construct_graph_get_data_from_laby(delay=delay, session=session, uuid=current,
-                                                        leftovers=leftovers, error_out=error_out, forbid_out=forbid_out)
+    _res = _construct_graph_get_data_from_laby(session=session, uuid=current,
+                                               leftovers=leftovers, error_out=error_out, forbid_out=forbid_out)
 
     for _i in _res:
         _next = _i["uuid"]
-        _obj = UUID(_next)
-        _construct_graph_add_edge(edges=edges, source=_obj, to=current)
+        _construct_graph_add_edge(edges=edges, source=_next, to=current)
 
     for _i in _res:
         _next = _i["uuid"]
-        _obj = UUID(_next)
-        _obj_str = uuid_to_str(_obj)
+        _obj_str = uuid_to_str(_next)
         if _has_prev and _obj_str == uuid_to_str(previous):
             continue
         uuid_to_ign[_obj_str] = _i["user_name"]
         _construct_graph_dfs(nodes=nodes, edges=edges, uuid_to_ign=uuid_to_ign,
                              forbid_out=forbid_out, error_out=error_out, leftovers=leftovers,
-                             delay=delay, session=session, current=_obj, previous=current)
+                             session=session, current=_next, previous=current)
 
 
 def _construct_graph_bfs(nodes: list[UUID], edges: list[tuple[UUID, UUID]], uuid_to_ign: dict[str, str],
                          leftovers: list[UUID], forbid_out: list[UUID], error_out: list[UUID],
-                         session: requests.Session, delay: int,
-                         start_spot: UUID):
-
+                         session: requests.Session, start_spot: UUID):
     _queue = bfs_pending
 
     _queue.append(start_spot)
@@ -160,53 +158,38 @@ def _construct_graph_bfs(nodes: list[UUID], edges: list[tuple[UUID, UUID]], uuid
         _current = _queue[0]
         _queue.remove(_current)
 
-        _node_present = nodes.count(_current)
-        if _node_present != 0:
+        if _graph_node_presence(nodes, _current):
             continue
         _construct_graph_add_node(nodes, _current)
 
-        _status, _res = _construct_graph_get_data_from_laby(delay=delay, session=session, uuid=_current,
-                                                            leftovers=leftovers, error_out=error_out, forbid_out=forbid_out)
+        _res = _construct_graph_get_data_from_laby(session=session, uuid=_current,
+                                                   leftovers=leftovers,
+                                                   error_out=error_out,
+                                                   forbid_out=forbid_out)
 
         for _i in _res:
             _next = _i["uuid"]
-            _obj = UUID(_next)
-            uuid_to_ign[uuid_to_str(_obj)] = _i["user_name"]
-            _construct_graph_add_edge(edges=edges, source=_obj, to=_current)
-            _queue.append(_obj)
+            uuid_to_ign[uuid_to_str(_next)] = _i["user_name"]
+            _construct_graph_add_edge(edges=edges, source=_next, to=_current)
+            _queue.append(_next)
 
 
-def crawler_make_request_to_laby(session: requests.Session, delay: int, uuid: UUID,
-                                 mode: Literal["friends", "profile"] = "friends") -> [int, list]:
-
-    crawler_wait(delay)
-
-    req = request_to_labynet(session=session, uuid=uuid, mode=mode, proxies=crawler_proxies)
-
-    _status = req.status_code
-    logging.debug(_status)
-    logging.debug(req.headers)
-    res = req.text
-    logging.debug(res)
-
+def crawler_make_request_to_laby(session: requests.Session, uuid: UUID,
+                                 mode: Literal["friends", "profile", "accounts"] = "friends"):
+    crawler_wait(delay=crawler_delay)
+    if mode == "profile":
+        r = labynet.profile(session=session, uuid=uuid, proxies=crawler_proxies)
+    elif mode == "friends" or mode == "accounts":
+        r = labynet.friend_or_alt(session=session, uuid=uuid, mode=mode, proxies=crawler_proxies)
+    else:
+        raise ValueError(f"What's this? ({mode})")
     crawler_req_add_count()
-    if _status != 200:
-        return _status, []
-    try:
-        _r = json.loads(res)
-    except JSONDecodeError:
-        logging.error("There's some problem parsing response at {}: {}".format(uuid, res))
-        traceback.print_exc()
-        _r = []
-    logging.debug(_r)
-    return _status, _r
+    return r
 
 
-def _crawler_run(nodes: list[UUID], edges: list[tuple[UUID, UUID]], uuid_to_ign: dict[str, str],
-                 leftovers: list[UUID], forbid_out: list[UUID], error_out: list[UUID],
-                 session: requests.Session, delay: int,
-                 start_spot: UUID):
-
+def crawler_run(nodes: list[UUID], edges: list[tuple[UUID, UUID]], uuid_to_ign: dict[str, str],
+                leftovers: list[UUID], forbid_out: list[UUID], error_out: list[UUID],
+                session: requests.Session, start_spot: UUID):
     _uuid = start_spot
     if _uuid is None:
         raise ValueError("There's nothing.")
@@ -217,35 +200,30 @@ def _crawler_run(nodes: list[UUID], edges: list[tuple[UUID, UUID]], uuid_to_ign:
     if _method_op == CRAWLING_DEPTH_FIRST:
         logging.debug("Depth-first crawling.")
         _construct_graph_dfs(nodes=nodes, edges=edges, uuid_to_ign=uuid_to_ign,
-                             delay=delay, session=session,
+                             session=session,
                              leftovers=leftovers, forbid_out=forbid_out, error_out=error_out,
                              current=_uuid)
     elif _method_op == CRAWLING_BREADTH_FIRST:
         logging.debug("Breadth-first crawling.")
         _construct_graph_bfs(nodes=nodes, edges=edges, uuid_to_ign=uuid_to_ign,
-                             delay=delay, session=session,
+                             session=session,
                              leftovers=leftovers, forbid_out=forbid_out, error_out=error_out,
                              start_spot=_uuid)
     else:
         raise ValueError("There's nothing.")
 
-    _status, _res = crawler_make_request_to_laby(delay=delay, session=session, uuid=_uuid, mode="profile")
+    _, _res = crawler_make_request_to_laby(session=session, uuid=_uuid, mode="profile")
     _s = uuid_to_str(_uuid)
-    if _status == 200:
-        uuid_to_ign[_s] = _res["username"]
-    else:
-        uuid_to_ign[_s] = _s
+    uuid_to_ign[_s] = _res["username"]
 
     generate_graph_html(nodes, edges, uuid_to_ign)
 
 
-def run():
+def init():
     _op = crawler_init_prompt()
 
-    _start_spot = get_start_spot()
-    if _start_spot:
-        _start_spot = UUID(_start_spot)
-        logging.debug(_start_spot)
+    _start_spot = get_start_spot(as_uuid_object=True)
+    logging.debug(_start_spot)
     _import_json = get_import_json()
 
     _nodes: list[UUID] = []
@@ -256,16 +234,17 @@ def run():
         _nodes, _edges, _uuid_to_ign = import_result(_import_json)
         generate_graph_html(_nodes, _edges, _uuid_to_ign)
     else:
-        _delay = 5
+        logging.debug(f"Proxies: {crawler_proxies}")
+        logging.debug(f"Delay: {crawler_delay}")
+        logging.debug(f"Follow alt: {crawler_follow_alt}")
         _leftovers: list[UUID] = []
         _forbid_out: list[UUID] = []
         _error_out: list[UUID] = []
         _session = requests.Session()
         try:
-            _crawler_run(nodes=_nodes, edges=_edges, uuid_to_ign=_uuid_to_ign,
-                         leftovers=_leftovers, forbid_out=_forbid_out, error_out=_error_out,
-                         session=_session, delay=_delay,
-                         start_spot=_start_spot)
+            crawler_run(nodes=_nodes, edges=_edges, uuid_to_ign=_uuid_to_ign,
+                        leftovers=_leftovers, forbid_out=_forbid_out, error_out=_error_out,
+                        session=_session, start_spot=_start_spot)
         finally:
             save_result(nodes=_nodes, edges=_edges, uuid_to_ign=_uuid_to_ign,
                         leftovers=_leftovers, forbid_out=_forbid_out, error_out=_error_out)

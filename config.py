@@ -22,7 +22,9 @@ import os
 import json
 from types import UnionType
 from typing import Type
+from uuid import UUID
 import dotenv
+
 
 _config_file_name = "config.json"
 _acceptable_type = str | int | bool | dict | None
@@ -172,8 +174,14 @@ def get_automation_id() -> str:
     return get_item("automate").value
 
 
-def get_start_spot() -> str:
-    return get_item("crawler", "start_spot").value
+def get_start_spot(as_uuid_object: bool = False) -> str | UUID | None:
+    from util import str_to_uuid
+    v = get_item("crawler", "start_spot").value
+    if not v:
+        return None
+    if as_uuid_object:
+        v = str_to_uuid(v)
+    return v
 
 
 def get_import_json() -> str:

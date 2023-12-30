@@ -5,9 +5,9 @@ __all__ = [
     "path_to_result",
     "get_ign_from_uuid",
     "uuid_to_str",
+    "str_to_uuid",
     "validate_import_json",
-    "validate_start_spot",
-    "request_to_labynet"
+    "validate_start_spot"
 ]
 
 import json
@@ -15,9 +15,7 @@ import logging
 import os
 import random
 import time
-from typing import Literal
 from uuid import UUID
-import requests
 from pyvis.network import Network
 from config import get_item, get_config_object, get_request_headers
 
@@ -62,8 +60,9 @@ def import_result(filename: str, full: bool = False):
 
     with open(_filepath, "r") as resf:
         r = json.loads(resf.read())
-        nodes.extend(list(map(lambda _v: UUID(_v), r["data"]["nodes"])))
-        edges.extend(list(map(lambda _v: (UUID(_v[0]), UUID(_v[1])), r["data"]["edges"])))
+        assert isinstance(r, dict)
+        nodes.extend(list(map(lambda _v: str_to_uuid(_v), r["data"]["nodes"])))
+        edges.extend(list(map(lambda _v: (str_to_uuid(_v[0]), UUID(_v[1])), r["data"]["edges"])))
         for _k, _v in r["data"]["uuid_to_ign"].items():
             uuid_to_ign[_k] = _v
         if not full:
@@ -73,9 +72,9 @@ def import_result(filename: str, full: bool = False):
         leftovers: list[UUID] = []
         error_out: list[UUID] = []
         forbid_out: list[UUID] = []
-        leftovers.extend(list(map(lambda _v: UUID(_v), r["leftovers"])))
-        error_out.extend(list(map(lambda _v: UUID(_v), r["errored"]["error_out"])))
-        forbid_out.extend(list(map(lambda _v: UUID(_v), r["errored"]["forbid_out"])))
+        leftovers.extend(list(map(lambda _v: str_to_uuid(_v), r.get("leftovers", []))))
+        error_out.extend(list(map(lambda _v: str_to_uuid(_v), r.get("errored", {}).get("error_out", []))))
+        forbid_out.extend(list(map(lambda _v: str_to_uuid(_v), r.get("errored", {}).get("forbid_out", []))))
         metadata: dict = r["metadata"]
 
     logging.info("Importing result from {}".format(_filepath))
@@ -118,7 +117,11 @@ def get_ign_from_uuid(uuid_to_ign: dict[str, str], target: str | UUID) -> str:
     return uuid_to_ign.get(_target, _target)
 
 
-def uuid_to_str(uuid: UUID, no_dash=False):
+def str_to_uuid(uuid: str) -> UUID:
+    return UUID(uuid)
+
+
+def uuid_to_str(uuid: UUID, no_dash=False) -> str:
     _r = str(uuid)
     if no_dash:
         _r = _r.replace("-", "")
@@ -131,20 +134,9 @@ def validate_import_json(filename: str) -> bool:
     return os.path.exists(path_to_result(filename))
 
 
-def validate_start_spot(_v):
+def validate_start_spot(uuid: str) -> bool:
     try:
-        UUID(_v)
+        str_to_uuid(uuid)
         return True
     except:
         return False
-
-
-def request_to_labynet(session: requests.Session,
-                       uuid: UUID,
-                       mode: Literal["friends", "profile", "accounts"] = "friends",
-                       **kwargs):
-    _rh = get_request_headers()
-    _url = "https://{}/api/v3/user/{}/{}".format(_rh["host"], uuid, mode)
-    logging.info(_url)
-    res = session.get(_url, proxies=kwargs["proxies"], headers=_rh)
-    return res
